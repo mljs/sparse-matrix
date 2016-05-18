@@ -59,6 +59,24 @@ class SparseMatrix {
         return copy;
     }
 
+    isSquare() {
+        return this.rows === this.columns;
+    }
+
+    isSymmetric() {
+        if (!this.isSquare()) return false;
+
+        var symmetric = true;
+        this.forEachNonZero((i, j, v) => {
+            if (this.get(j, i) !== v) {
+                symmetric = false;
+                return false;
+            }
+            return v;
+        });
+        return symmetric;
+    }
+
     get cardinality() {
         return this.elements.size;
     }
@@ -123,6 +141,7 @@ class SparseMatrix {
             const i = (key / this.columns) | 0;
             const j = key % this.columns;
             const r = callback(i, j, value);
+            if (r === false) return false; // stop iteration
             if (r !== value) {
                 if (r === 0) {
                     this.elements.remove(key);
