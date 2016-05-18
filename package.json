@@ -1,6 +1,6 @@
 {
   "name": "ml-sparse-matrix",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Sparse matrix library",
   "main": "dist/SparseMatrix.js",
   "jsnext:main": "src/SparseMatrix.js",
