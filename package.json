@@ -2,14 +2,11 @@
   "name": "ml-sparse-matrix",
   "version": "0.1.0",
   "description": "Sparse matrix library",
-  "main": "dist/SparseMatrix.js",
-  "jsnext:main": "src/SparseMatrix.js",
+  "main": "src/SparseMatrix.js",
   "scripts": {
-    "test": "npm run build && mocha",
-    "build": "rollup -c"
+    "test": "mocha"
   },
   "files": [
-    "dist",
     "src"
   ],
   "repository": {
@@ -28,9 +25,6 @@
   "homepage": "https://github.com/mljs/sparse-matrix#readme",
   "devDependencies": {
     "mocha": "^2.4.5",
-    "rollup": "^0.26.3",
-    "rollup-plugin-commonjs": "^2.2.1",
-    "rollup-plugin-node-resolve": "^1.5.0",
     "should": "^8.3.1"
   },
   "dependencies": {

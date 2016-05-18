@@ -1,4 +1,4 @@
-import HashTable from 'ml-hash-table';
+const HashTable = require('ml-hash-table');
 
 class SparseMatrix {
     constructor(rows, columns, options = {}) {
@@ -175,7 +175,7 @@ SparseMatrix.prototype.klass = 'Matrix';
 SparseMatrix.identity = SparseMatrix.eye;
 SparseMatrix.prototype.tensorProduct = SparseMatrix.prototype.kroneckerProduct;
 
-export default SparseMatrix;
+module.exports = SparseMatrix;
 
 /*
  Add dynamically instance and static methods for mathematical operations
