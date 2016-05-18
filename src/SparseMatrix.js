@@ -125,7 +125,9 @@ class SparseMatrix {
         const p = other.rows;
         const q = other.columns;
 
-        const result = new SparseMatrix(m * p, n * q);
+        const result = new SparseMatrix(m * p, n * q, {
+            initialCapacity: this.cardinality * other.cardinality
+        });
         this.forEachNonZero((i, j, v1) => {
             other.forEachNonZero((k, l, v2) => {
                 result.set(p * i + k, q * j + l, v1 * v2);
