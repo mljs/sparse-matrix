@@ -147,13 +147,14 @@ class SparseMatrix {
             if (this.threshold && Math.abs(r) < this.threshold) r = 0;
             if (r !== value) {
                 if (r === 0) {
-                    this.elements.remove(key);
+                    this.elements.remove(key, true);
                 } else {
                     this.elements.set(key, r);
                 }
             }
             return true;
         });
+        this.elements.maybeShrinkCapacity();
         return this;
     }
 

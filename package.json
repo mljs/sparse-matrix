@@ -28,6 +28,6 @@
     "should": "^8.3.1"
   },
   "dependencies": {
-    "ml-hash-table": "^0.1.2"
+    "ml-hash-table": "^0.2.0"
   }
 }
