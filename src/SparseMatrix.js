@@ -139,11 +139,12 @@ class SparseMatrix {
     }
 
     forEachNonZero(callback) {
-        return this.elements.forEachPair((key, value) => {
+        this.elements.forEachPair((key, value) => {
             const i = (key / this.columns) | 0;
             const j = key % this.columns;
-            const r = callback(i, j, value);
+            let r = callback(i, j, value);
             if (r === false) return false; // stop iteration
+            if (this.threshold && Math.abs(r) < this.threshold) r = 0;
             if (r !== value) {
                 if (r === 0) {
                     this.elements.remove(key);
@@ -153,6 +154,7 @@ class SparseMatrix {
             }
             return true;
         });
+        return this;
     }
 
     getNonZeros() {
@@ -169,6 +171,14 @@ class SparseMatrix {
             return value;
         });
         return {rows, columns, values};
+    }
+
+    setThreshold(newThreshold) {
+        if (newThreshold !== 0 && newThreshold !== this.threshold) {
+            this.threshold = newThreshold;
+            this.forEachNonZero((i, j, v) => v);
+        }
+        return this;
     }
 }
 
