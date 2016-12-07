@@ -1,3 +1,4 @@
+'use strict';
 const HashTable = require('ml-hash-table');
 
 class SparseMatrix {
