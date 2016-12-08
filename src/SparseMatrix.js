@@ -35,7 +35,7 @@ class SparseMatrix {
         this.elements = elements;
         this.threshold = threshold || 0;
     }
-    
+
     static eye(rows = 1, columns = rows) {
         const min = Math.min(rows, columns);
         const matrix = new SparseMatrix(rows, columns, {initialCapacity: min});
@@ -48,7 +48,7 @@ class SparseMatrix {
     clone() {
         return new SparseMatrix(this);
     }
-    
+
     to2DArray() {
         const copy = new Array(this.rows);
         for (var i = 0; i < this.rows; i++) {
@@ -99,14 +99,16 @@ class SparseMatrix {
         }
         return this;
     }
-    
+
     mmul(other) {
-        if (this.columns !== other.rows)
+        if (this.columns !== other.rows) {
+            // eslint-disable-next-line no-console
             console.warn('Number of columns of left matrix are not equal to number of rows of right matrix.');
-        
+        }
+
         const m = this.rows;
         const p = other.columns;
-        
+
         const result = new SparseMatrix(m, p);
         this.forEachNonZero((i, j, v1) => {
             other.forEachNonZero((k, l, v2) => {
@@ -240,7 +242,7 @@ var staticMethod = `
 })
 `;
 
-var operators = [
+const operators = [
     // Arithmetic operators
     ['+', 'add'],
     ['-', 'sub', 'subtract'],
@@ -256,8 +258,8 @@ var operators = [
     ['>>>', 'rightShift', 'zeroFillRightShift']
 ];
 
-for (var operator of operators) {
-    for (var i = 1; i < operator.length; i++) {
+for (const operator of operators) {
+    for (let i = 1; i < operator.length; i++) {
         SparseMatrix.prototype[operator[i]] = eval(fillTemplateFunction(inplaceOperator, {name: operator[i], op: operator[0]}));
         SparseMatrix.prototype[operator[i] + 'S'] = eval(fillTemplateFunction(inplaceOperatorScalar, {name: operator[i] + 'S', op: operator[0]}));
         SparseMatrix.prototype[operator[i] + 'M'] = eval(fillTemplateFunction(inplaceOperatorMatrix, {name: operator[i] + 'M', op: operator[0]}));
@@ -278,15 +280,15 @@ var methods = [
     methods.push(['Math.' + mathMethod, mathMethod]);
 });
 
-for (var method of methods) {
-    for (var i = 1; i < method.length; i++) {
+for (const method of methods) {
+    for (let i = 1; i < method.length; i++) {
         SparseMatrix.prototype[method[i]] = eval(fillTemplateFunction(inplaceMethod, {name: method[i], method: method[0]}));
         SparseMatrix[method[i]] = eval(fillTemplateFunction(staticMethod, {name: method[i]}));
     }
 }
 
 function fillTemplateFunction(template, values) {
-    for (var i in values) {
+    for (const i in values) {
         template = template.replace(new RegExp('%' + i + '%', 'g'), values[i]);
     }
     return template;
