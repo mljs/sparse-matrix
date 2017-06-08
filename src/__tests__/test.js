@@ -35,4 +35,9 @@ describe('Sparse Matrix', () => {
         m = new SparseMatrix([[0, 1], [0, 1]]);
         expect(m.isSymmetric()).toBe(false);
     });
+
+    it('transpose', () => {
+        const matrix1 = new SparseMatrix([[1, 2], [3, 4]]);
+        expect(matrix1.transpose().to2DArray()).toEqual([[1, 3], [2, 4]]);
+    });
 });
