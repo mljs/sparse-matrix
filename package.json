@@ -2,39 +2,45 @@
   "name": "ml-sparse-matrix",
   "version": "0.2.1",
   "description": "Sparse matrix library",
-  "main": "src/SparseMatrix.js",
-  "scripts": {
-    "eslint": "eslint src test",
-    "eslint-fix": "npm run eslint -- --fix",
-    "test": "npm run test-mocha; npm run eslint",
-    "test-mocha": "mocha --require should --reporter mocha-better-spec-reporter --recursive"
-  },
+  "main": "lib/index.js",
+  "module": "src/index.js",
   "files": [
+    "lib",
     "src"
   ],
+  "scripts": {
+    "eslint": "eslint src",
+    "eslint-fix": "npm run eslint -- --fix",
+    "prepublish": "rollup -c",
+    "test": "run-s testonly eslint",
+    "testonly": "jest",
+    "test-travis": "jest --coverage && codecov"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mljs/sparse-matrix.git"
   },
-  "keywords": [
-    "sparse",
-    "matrix"
-  ],
+  "keywords": [],
   "author": "Michaël Zasso",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/mljs/sparse-matrix/issues"
   },
   "homepage": "https://github.com/mljs/sparse-matrix#readme",
-  "devDependencies": {
-    "eslint": "^3.11.1",
-    "eslint-config-cheminfo": "^1.5.4",
-    "eslint-plugin-no-only-tests": "^1.1.0",
-    "mocha": "^3.2.0",
-    "mocha-better-spec-reporter": "^3.1.0",
-    "should": "^11.1.1"
+  "jest": {
+    "testEnvironment": "node"
   },
   "dependencies": {
-    "ml-hash-table": "^0.2.0"
+    "ml-hash-table": "^0.2.1"
+  },
+  "devDependencies": {
+    "babel-plugin-transform-es2015-modules-commonjs": "^6.24.1",
+    "codecov": "^2.2.0",
+    "eslint": "^3.19.0",
+    "eslint-config-cheminfo": "^1.8.0",
+    "eslint-plugin-no-only-tests": "^1.1.0",
+    "jest": "^20.0.4",
+    "npm-run-all": "^4.0.2",
+    "rollup": "^0.42.0"
   }
 }

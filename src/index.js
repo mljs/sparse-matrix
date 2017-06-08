@@ -1,7 +1,6 @@
-'use strict';
-const HashTable = require('ml-hash-table');
+import HashTable from 'ml-hash-table';
 
-class SparseMatrix {
+export class SparseMatrix {
     constructor(rows, columns, options = {}) {
         if (rows instanceof SparseMatrix) { // clone
             const other = rows;
@@ -190,8 +189,6 @@ SparseMatrix.prototype.klass = 'Matrix';
 
 SparseMatrix.identity = SparseMatrix.eye;
 SparseMatrix.prototype.tensorProduct = SparseMatrix.prototype.kroneckerProduct;
-
-module.exports = SparseMatrix;
 
 /*
  Add dynamically instance and static methods for mathematical operations
