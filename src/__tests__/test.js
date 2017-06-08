@@ -1,4 +1,4 @@
-import SparseMatrix from '..';
+import {SparseMatrix} from '..';
 
 describe('Sparse Matrix', () => {
     it('mmul', () => {
