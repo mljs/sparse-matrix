@@ -183,6 +183,18 @@ export class SparseMatrix {
         }
         return this;
     }
+
+    /**
+     * @return {SparseMatrix} - New transposed sparse matrix
+     */
+    transpose() {
+        let trans = new SparseMatrix(this.columns, this.rows, {initialCapacity: this.cardinality});
+        this.forEachNonZero((i, j, value) => {
+            trans.set(j, i, value);
+            return value;
+        });
+        return trans;
+    }
 }
 
 SparseMatrix.prototype.klass = 'Matrix';
