@@ -77,6 +77,32 @@ export class SparseMatrix {
         return symmetric;
     }
 
+    /**
+     * Search for the wither band in the main diagonals
+     * @return {number}
+     */
+    bandWidth() {
+        let min = this.columns;
+        let max = -1;
+        this.forEachNonZero((i, j, v) => {
+            let diff = i - j;
+            min = Math.min(min, diff);
+            max = Math.max(max, diff);
+            return v;
+        });
+        return max - min;
+    }
+
+    /**
+     * Test if a matrix is consider banded using a threshold
+     * @param {number} width
+     * @return {boolean}
+     */
+    isBanded(width) {
+        let bandWidth = this.bandWidth();
+        return bandWidth <= width;
+    }
+
     get cardinality() {
         return this.elements.size;
     }
