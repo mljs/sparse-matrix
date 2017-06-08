@@ -6,11 +6,11 @@ describe('Sparse Matrix', () => {
         var m2 = new SparseMatrix([[0, 1], [2, 0], [0, 0]]);
         var m3 = m1.mmul(m2);
 
-        expect(m1.cardinality).toEqual(3);
-        expect(m2.cardinality).toEqual(2);
-        expect(m3.cardinality).toEqual(1);
+        expect(m1.cardinality).toBe(3);
+        expect(m2.cardinality).toBe(2);
+        expect(m3.cardinality).toBe(1);
 
-        expect(m3.get(0, 1)).toEqual(2);
+        expect(m3.get(0, 1)).toBe(2);
     });
 
     it('kronecker', () => {
@@ -26,13 +26,13 @@ describe('Sparse Matrix', () => {
     });
 
     it('isSymmetric', () => {
-        expect((new SparseMatrix(10, 10)).isSymmetric()).toEqual(true);
-        expect((new SparseMatrix(15, 10)).isSymmetric()).toEqual(false);
+        expect((new SparseMatrix(10, 10)).isSymmetric()).toBe(true);
+        expect((new SparseMatrix(15, 10)).isSymmetric()).toBe(false);
 
         let m = new SparseMatrix([[0, 1], [1, 0]]);
-        expect(m.isSymmetric()).toEqual(true);
+        expect(m.isSymmetric()).toBe(true);
 
         m = new SparseMatrix([[0, 1], [0, 1]]);
-        expect(m.isSymmetric()).toEqual(false);
+        expect(m.isSymmetric()).toBe(false);
     });
 });
