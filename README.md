@@ -1,20 +1,20 @@
 # sparse-matrix
 
-  [![NPM version][npm-image]][npm-url]
-  [![build status][travis-image]][travis-url]
-  [![coverage status][codecov-image]][codecov-url]
-  [![npm download][download-image]][download-url]
+[![NPM version][npm-image]][npm-url]
+[![build status][travis-image]][travis-url]
+[![coverage status][codecov-image]][codecov-url]
+[![npm download][download-image]][download-url]
 
 Sparse matrix library.
 
 ## Installation
 
-`$ npm install --save ml-sparse-matrix`
+`$ npm i ml-sparse-matrix`
 
 ## Usage
 
 ```js
-import {SparseMatrix} from 'ml-sparse-matrix';
+import { SparseMatrix } from 'ml-sparse-matrix';
 
 const matrix1 = new SparseMatrix([[1, 2], [3, 4]]);
 const matrix2 = new SparseMatrix([[0, 5], [6, 7]]);
@@ -25,7 +25,7 @@ const product = matrix1.kroneckerProduct(matrix2);
 
 ## License
 
-  [MIT](./LICENSE)
+[MIT](./LICENSE)
 
 [npm-image]: https://img.shields.io/npm/v/ml-sparse-matrix.svg?style=flat-square
 [npm-url]: https://npmjs.org/package/ml-sparse-matrix
