@@ -1,3 +1,17 @@
+# [2.0.0](https://github.com/mljs/sparse-matrix/compare/v1.0.0...v2.0.0) (2019-06-29)
+
+
+### chore
+
+* update dependencies and remove support for Node.js 6 ([4daad75](https://github.com/mljs/sparse-matrix/commit/4daad75))
+
+
+### BREAKING CHANGES
+
+* Node.js 6 is no longer supported.
+
+
+
 <a name="1.0.0"></a>
 # [1.0.0](https://github.com/mljs/sparse-matrix/compare/v0.2.1...v1.0.0) (2017-12-11)
 
