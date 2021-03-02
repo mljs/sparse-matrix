@@ -231,6 +231,10 @@ export class SparseMatrix {
     });
     return trans;
   }
+
+  isEmpty() {
+    return this.rows === 0 || this.columns === 0;
+  }
 }
 
 SparseMatrix.prototype.klass = 'Matrix';
