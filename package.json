@@ -1,6 +1,6 @@
 {
   "name": "ml-sparse-matrix",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Sparse matrix library",
   "main": "lib/index.js",
   "module": "src/index.js",

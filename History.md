@@ -1,3 +1,10 @@
+## [2.1.0](https://github.com/mljs/sparse-matrix/compare/v2.0.0...v2.1.0) (2021-03-03)
+
+
+### Features
+
+* add isEmpty function ([e0f8327](https://github.com/mljs/sparse-matrix/commit/e0f8327d58c1a3d508fc120fd5d9b9140156d069))
+
 # [2.0.0](https://github.com/mljs/sparse-matrix/compare/v1.0.0...v2.0.0) (2019-06-29)
 
 
