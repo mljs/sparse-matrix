@@ -1,3 +1,4 @@
+/* eslint-disable no-eval */
 import HashTable from 'ml-hash-table';
 
 export class SparseMatrix {
@@ -9,7 +10,7 @@ export class SparseMatrix {
         other.rows,
         other.columns,
         other.elements.clone(),
-        other.threshold
+        other.threshold,
       );
       return;
     }
@@ -20,9 +21,9 @@ export class SparseMatrix {
       options = columns || {};
       columns = matrix[0].length;
       this._init(rows, columns, new HashTable(options), options.threshold);
-      for (var i = 0; i < rows; i++) {
-        for (var j = 0; j < columns; j++) {
-          var value = matrix[i][j];
+      for (let i = 0; i < rows; i++) {
+        for (let j = 0; j < columns; j++) {
+          let value = matrix[i][j];
           if (this.threshold && Math.abs(value) < this.threshold) value = 0;
           if (value !== 0) {
             this.elements.set(i * columns + j, matrix[i][j]);
@@ -44,7 +45,7 @@ export class SparseMatrix {
   static eye(rows = 1, columns = rows) {
     const min = Math.min(rows, columns);
     const matrix = new SparseMatrix(rows, columns, { initialCapacity: min });
-    for (var i = 0; i < min; i++) {
+    for (let i = 0; i < min; i++) {
       matrix.set(i, i, 1);
     }
     return matrix;
@@ -56,9 +57,9 @@ export class SparseMatrix {
 
   to2DArray() {
     const copy = new Array(this.rows);
-    for (var i = 0; i < this.rows; i++) {
+    for (let i = 0; i < this.rows; i++) {
       copy[i] = new Array(this.columns);
-      for (var j = 0; j < this.columns; j++) {
+      for (let j = 0; j < this.columns; j++) {
         copy[i][j] = this.get(i, j);
       }
     }
@@ -72,7 +73,7 @@ export class SparseMatrix {
   isSymmetric() {
     if (!this.isSquare()) return false;
 
-    var symmetric = true;
+    let symmetric = true;
     this.forEachNonZero((i, j, v) => {
       if (this.get(j, i) !== v) {
         symmetric = false;
@@ -135,7 +136,7 @@ export class SparseMatrix {
     if (this.columns !== other.rows) {
       // eslint-disable-next-line no-console
       console.warn(
-        'Number of columns of left matrix are not equal to number of rows of right matrix.'
+        'Number of columns of left matrix are not equal to number of rows of right matrix.',
       );
     }
 
@@ -162,7 +163,7 @@ export class SparseMatrix {
     const q = other.columns;
 
     const result = new SparseMatrix(m * p, n * q, {
-      initialCapacity: this.cardinality * other.cardinality
+      initialCapacity: this.cardinality * other.cardinality,
     });
     this.forEachNonZero((i, j, v1) => {
       other.forEachNonZero((k, l, v2) => {
@@ -199,7 +200,7 @@ export class SparseMatrix {
     const rows = new Array(cardinality);
     const columns = new Array(cardinality);
     const values = new Array(cardinality);
-    var idx = 0;
+    let idx = 0;
     this.forEachNonZero((i, j, value) => {
       rows[idx] = i;
       columns[idx] = j;
@@ -223,7 +224,7 @@ export class SparseMatrix {
    */
   transpose() {
     let trans = new SparseMatrix(this.columns, this.rows, {
-      initialCapacity: this.cardinality
+      initialCapacity: this.cardinality,
     });
     this.forEachNonZero((i, j, value) => {
       trans.set(j, i, value);
@@ -246,21 +247,21 @@ SparseMatrix.prototype.tensorProduct = SparseMatrix.prototype.kroneckerProduct;
  Add dynamically instance and static methods for mathematical operations
  */
 
-var inplaceOperator = `
+let inplaceOperator = `
 (function %name%(value) {
     if (typeof value === 'number') return this.%name%S(value);
     return this.%name%M(value);
 })
 `;
 
-var inplaceOperatorScalar = `
+let inplaceOperatorScalar = `
 (function %name%S(value) {
     this.forEachNonZero((i, j, v) => v %op% value);
     return this;
 })
 `;
 
-var inplaceOperatorMatrix = `
+let inplaceOperatorMatrix = `
 (function %name%M(matrix) {
     matrix.forEachNonZero((i, j, v) => {
         this.set(i, j, this.get(i, j) %op% v);
@@ -270,21 +271,21 @@ var inplaceOperatorMatrix = `
 })
 `;
 
-var staticOperator = `
+let staticOperator = `
 (function %name%(matrix, value) {
     var newMatrix = new SparseMatrix(matrix);
     return newMatrix.%name%(value);
 })
 `;
 
-var inplaceMethod = `
+let inplaceMethod = `
 (function %name%() {
     this.forEachNonZero((i, j, v) => %method%(v));
     return this;
 })
 `;
 
-var staticMethod = `
+let staticMethod = `
 (function %name%(matrix) {
     var newMatrix = new SparseMatrix(matrix);
     return newMatrix.%name%();
@@ -304,7 +305,7 @@ const operators = [
   ['^', 'xor'],
   ['<<', 'leftShift'],
   ['>>', 'signPropagatingRightShift'],
-  ['>>>', 'rightShift', 'zeroFillRightShift']
+  ['>>>', 'rightShift', 'zeroFillRightShift'],
 ];
 
 for (const operator of operators) {
@@ -312,29 +313,29 @@ for (const operator of operators) {
     SparseMatrix.prototype[operator[i]] = eval(
       fillTemplateFunction(inplaceOperator, {
         name: operator[i],
-        op: operator[0]
-      })
+        op: operator[0],
+      }),
     );
     SparseMatrix.prototype[`${operator[i]}S`] = eval(
       fillTemplateFunction(inplaceOperatorScalar, {
         name: `${operator[i]}S`,
-        op: operator[0]
-      })
+        op: operator[0],
+      }),
     );
     SparseMatrix.prototype[`${operator[i]}M`] = eval(
       fillTemplateFunction(inplaceOperatorMatrix, {
         name: `${operator[i]}M`,
-        op: operator[0]
-      })
+        op: operator[0],
+      }),
     );
 
     SparseMatrix[operator[i]] = eval(
-      fillTemplateFunction(staticOperator, { name: operator[i] })
+      fillTemplateFunction(staticOperator, { name: operator[i] }),
     );
   }
 }
 
-var methods = [['~', 'not']];
+let methods = [['~', 'not']];
 
 [
   'abs',
@@ -364,7 +365,7 @@ var methods = [['~', 'not']];
   'sqrt',
   'tan',
   'tanh',
-  'trunc'
+  'trunc',
 ].forEach(function (mathMethod) {
   methods.push([`Math.${mathMethod}`, mathMethod]);
 });
@@ -374,11 +375,11 @@ for (const method of methods) {
     SparseMatrix.prototype[method[i]] = eval(
       fillTemplateFunction(inplaceMethod, {
         name: method[i],
-        method: method[0]
-      })
+        method: method[0],
+      }),
     );
     SparseMatrix[method[i]] = eval(
-      fillTemplateFunction(staticMethod, { name: method[i] })
+      fillTemplateFunction(staticMethod, { name: method[i] }),
     );
   }
 }
