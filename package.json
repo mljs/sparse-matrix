@@ -1,6 +1,6 @@
 {
   "name": "ml-sparse-matrix",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Sparse matrix library",
   "main": "lib/index.js",
   "module": "src/index.js",
@@ -12,7 +12,7 @@
     "compile": "rollup -c",
     "eslint": "eslint src",
     "eslint-fix": "npm run eslint -- --fix",
-    "prepack": "npm run compile",    
+    "prepack": "npm run compile",
     "prettier": "prettier --check src",
     "prettier-write": "prettier --write src",
     "test": "npm run test-only && npm run eslint && npm run prettier",
