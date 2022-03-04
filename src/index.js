@@ -366,7 +366,7 @@ let methods = [['~', 'not']];
   'tan',
   'tanh',
   'trunc',
-].forEach(function (mathMethod) {
+].forEach((mathMethod) => {
   methods.push([`Math.${mathMethod}`, mathMethod]);
 });
 
