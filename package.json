@@ -12,11 +12,11 @@
     "compile": "rollup -c",
     "eslint": "eslint src",
     "eslint-fix": "npm run eslint -- --fix",
-    "prepack": "npm run compile",    
+    "prepack": "npm run compile",
     "prettier": "prettier --check src",
     "prettier-write": "prettier --write src",
     "test": "npm run test-only && npm run eslint && npm run prettier",
-    "test-only": "jest --coverage"
+    "test-only": "vitest run --coverage"
   },
   "repository": {
     "type": "git",
@@ -33,11 +33,12 @@
     "ml-hash-table": "^1.0.0"
   },
   "devDependencies": {
-    "@babel/plugin-transform-modules-commonjs": "^7.16.8",
+    "@babel/plugin-transform-modules-commonjs": "^7.24.8",
+    "@vitest/coverage-v8": "^2.0.5",
     "eslint": "^8.10.0",
-    "eslint-config-cheminfo": "^7.2.2",
-    "jest": "^27.5.1",
-    "prettier": "^2.5.1",
-    "rollup": "^2.69.0"
+    "eslint-config-cheminfo": "^11.1.1",
+    "prettier": "^3.3.3",
+    "rollup": "^4.21.0",
+    "vitest": "^2.0.5"
   }
 }

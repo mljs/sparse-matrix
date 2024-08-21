@@ -86,7 +86,7 @@ export class SparseMatrix {
 
   /**
    * Search for the wither band in the main diagonals
-   * @return {number}
+   * @returns {number}
    */
   bandWidth() {
     let min = this.columns;
@@ -103,7 +103,7 @@ export class SparseMatrix {
   /**
    * Test if a matrix is consider banded using a threshold
    * @param {number} width
-   * @return {boolean}
+   * @returns {boolean}
    */
   isBanded(width) {
     let bandWidth = this.bandWidth();
@@ -220,7 +220,7 @@ export class SparseMatrix {
   }
 
   /**
-   * @return {SparseMatrix} - New transposed sparse matrix
+   * @returns {SparseMatrix} - New transposed sparse matrix
    */
   transpose() {
     let trans = new SparseMatrix(this.columns, this.rows, {
@@ -337,7 +337,7 @@ for (const operator of operators) {
 
 let methods = [['~', 'not']];
 
-[
+for (const mathMethod of [
   'abs',
   'acos',
   'acosh',
@@ -366,9 +366,9 @@ let methods = [['~', 'not']];
   'tan',
   'tanh',
   'trunc',
-].forEach((mathMethod) => {
+]) {
   methods.push([`Math.${mathMethod}`, mathMethod]);
-});
+}
 
 for (const method of methods) {
   for (let i = 1; i < method.length; i++) {
@@ -386,7 +386,7 @@ for (const method of methods) {
 
 function fillTemplateFunction(template, values) {
   for (const i in values) {
-    template = template.replace(new RegExp(`%${i}%`, 'g'), values[i]);
+    template = template.replaceAll(new RegExp(`%${i}%`, 'g'), values[i]);
   }
   return template;
 }
