@@ -1,5 +1,6 @@
-import { SparseMatrix } from '..';
 import { describe, it, expect } from 'vitest';
+
+import { SparseMatrix } from '..';
 
 describe('Sparse Matrix', () => {
   it('mmul', () => {
