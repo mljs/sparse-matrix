@@ -37,6 +37,7 @@
     "@vitest/coverage-v8": "^2.0.5",
     "eslint": "^8.10.0",
     "eslint-config-cheminfo": "^11.1.1",
+    "ml-matrix": "^6.11.1",
     "prettier": "^3.3.3",
     "rollup": "^4.21.0",
     "vitest": "^2.0.5"
