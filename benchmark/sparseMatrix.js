@@ -5,10 +5,10 @@ let size = 200;
 console.time('dense');
 
 const matrix = new SparseMatrix(size, size);
-fillSparseMatrix(matrix)
+fillSparseMatrix(matrix);
 
 const matrix2 = new SparseMatrix(size, size);
-fillSparseMatrix(matrix2)
+fillSparseMatrix(matrix2);
 
 const product = matrix.mmul(matrix2);
 // sum of all the elements
@@ -19,7 +19,7 @@ for (let i = 0; i < size; i++) {
   }
 }
 console.timeEnd('dense');
-console.log(sum)
+console.log(sum);
 
 function fillSparseMatrix(matrix) {
   for (let row = 0; row < matrix.rows; row++) {

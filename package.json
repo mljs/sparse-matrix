@@ -2,21 +2,24 @@
   "name": "ml-sparse-matrix",
   "version": "2.1.0",
   "description": "Sparse matrix library",
-  "main": "lib/index.js",
-  "module": "src/index.js",
+  "type": "module",
+  "exports": "./lib/index.js",
   "files": [
     "lib",
     "src"
   ],
   "scripts": {
-    "compile": "rollup -c",
-    "eslint": "eslint src",
+    "check-types": "tsc --noEmit",
+    "clean": "rimraf lib",
+    "eslint": "eslint .",
     "eslint-fix": "npm run eslint -- --fix",
-    "prepack": "npm run compile",
-    "prettier": "prettier --check src",
-    "prettier-write": "prettier --write src",
-    "test": "npm run test-only && npm run eslint && npm run prettier",
-    "test-only": "vitest run --coverage"
+    "prepack": "npm run tsc",
+    "prettier": "prettier --check .",
+    "prettier-write": "prettier --write .",
+    "test": "npm run test-only && npm run check-types && npm run eslint && npm run prettier",
+    "test-only": "vitest run --coverage",
+    "tsc": "npm run clean && npm run tsc-build",
+    "tsc-build": "tsc --project tsconfig.build.json"
   },
   "repository": {
     "type": "git",
@@ -33,13 +36,14 @@
     "ml-hash-table": "^1.0.0"
   },
   "devDependencies": {
-    "@babel/plugin-transform-modules-commonjs": "^7.24.8",
-    "@vitest/coverage-v8": "^2.0.5",
-    "eslint": "^8.10.0",
-    "eslint-config-cheminfo": "^11.1.1",
-    "ml-matrix": "^6.11.1",
-    "prettier": "^3.3.3",
-    "rollup": "^4.21.0",
-    "vitest": "^2.0.5"
+    "@types/node": "^22.15.21",
+    "@vitest/coverage-v8": "^3.1.4",
+    "eslint": "^9.27.0",
+    "eslint-config-cheminfo-typescript": "^18.0.1",
+    "ml-matrix": "^6.12.1",
+    "prettier": "^3.5.3",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.4"
   }
 }

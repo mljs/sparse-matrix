@@ -14,6 +14,5 @@ for (let i = 0; i < size; i++) {
     sum += product.get(i, j);
   }
 }
-console.log(sum)
+console.log(sum);
 console.timeEnd('dense');
-
