@@ -158,14 +158,32 @@ export class SparseMatrix {
     const m = this.rows;
     const p = other.columns;
 
+    const {
+      columns: otherCols,
+      rows: otherRows,
+      values: otherValues,
+    } = other.getNonZeros();
+    const {
+      columns: thisCols,
+      rows: thisRows,
+      values: thisValues,
+    } = this.getNonZeros();
+
     const result = new SparseMatrix(m, p);
-    this.withEachNonZero((i, j, v1) => {
-      other.withEachNonZero((k, l, v2) => {
-        if (j === k) {
-          result.set(i, l, result.get(i, l) + v1 * v2);
+
+    const nbOtherActive = otherCols.length;
+    const nbThisActive = thisCols.length;
+    for (let t = 0; t < nbThisActive; t++) {
+      const i = thisRows[t];
+      const j = thisCols[t];
+      for (let o = 0; o < nbOtherActive; o++) {
+        if (j === otherRows[o]) {
+          const l = otherCols[o];
+          result.set(i, l, result.get(i, l) + otherValues[o] * thisValues[t]);
         }
-      });
-    });
+      }
+    }
+
     return result;
   }
 
@@ -179,13 +197,31 @@ export class SparseMatrix {
       initialCapacity: this.cardinality * other.cardinality,
     });
 
-    this.withEachNonZero((i, j, v1) => {
-      const pi = p * i;
-      const qj = q * j;
-      other.withEachNonZero((k, l, v2) => {
-        result.set(pi + k, qj + l, v1 * v2);
-      });
-    });
+    const {
+      columns: otherCols,
+      rows: otherRows,
+      values: otherValues,
+    } = other.getNonZeros();
+    const {
+      columns: thisCols,
+      rows: thisRows,
+      values: thisValues,
+    } = this.getNonZeros();
+
+    const nbOtherActive = otherCols.length;
+    const nbThisActive = thisCols.length;
+    for (let t = 0; t < nbThisActive; t++) {
+      const pi = p * thisRows[t];
+      const qj = q * thisCols[t];
+      for (let o = 0; o < nbOtherActive; o++) {
+        result.set(
+          pi + otherRows[o],
+          qj + otherCols[o],
+          otherValues[o] * thisValues[t],
+        );
+      }
+    }
+
     return result;
   }
 
@@ -229,12 +265,11 @@ export class SparseMatrix {
     const columns = new Array(cardinality);
     const values = new Array(cardinality);
     let idx = 0;
-    this.forEachNonZero((i, j, value) => {
+    this.withEachNonZero((i, j, value) => {
       rows[idx] = i;
       columns[idx] = j;
       values[idx] = value;
       idx++;
-      return value;
     });
     return { rows, columns, values };
   }
@@ -254,9 +289,8 @@ export class SparseMatrix {
     let trans = new SparseMatrix(this.columns, this.rows, {
       initialCapacity: this.cardinality,
     });
-    this.forEachNonZero((i, j, value) => {
+    this.withEachNonZero((i, j, value) => {
       trans.set(j, i, value);
-      return value;
     });
     return trans;
   }
