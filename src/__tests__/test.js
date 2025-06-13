@@ -1,6 +1,24 @@
-import { SparseMatrix } from '..';
+import { SparseMatrix } from '../index';
 
 describe('Sparse Matrix', () => {
+  it('add', () => {
+    let m1 = new SparseMatrix([
+      [2, 0, 1],
+      [0, 0, 3],
+      [2, 0, 1],
+    ]);
+    let m2 = new SparseMatrix([
+      [0, 1, 5],
+      [2, 0, 0],
+      [-2, 0, -1],
+    ]);
+    let m3 = m1.add(m2).to2DArray();
+    expect(m3).toStrictEqual([
+      [2, 1, 6],
+      [2, 0, 3],
+      [0, 0, 0],
+    ]);
+  });
   it('mmul', () => {
     let m1 = new SparseMatrix([
       [2, 0, 1],

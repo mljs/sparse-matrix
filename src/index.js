@@ -17,11 +17,12 @@ export class SparseMatrix {
 
     if (Array.isArray(rows)) {
       const matrix = rows;
-      rows = matrix.length;
-      options = columns || {};
+      const nbRows = matrix.length;
+      const nbColmuns = matrix[0].length;
+      options = columns || { initialCapacity: nbRows * nbColmuns };
       columns = matrix[0].length;
-      this._init(rows, columns, new HashTable(options), options.threshold);
-      for (let i = 0; i < rows; i++) {
+      this._init(nbRows, columns, new HashTable(options), options.threshold);
+      for (let i = 0; i < nbRows; i++) {
         for (let j = 0; j < columns; j++) {
           let value = matrix[i][j];
           if (this.threshold && Math.abs(value) < this.threshold) value = 0;
@@ -30,6 +31,7 @@ export class SparseMatrix {
           }
         }
       }
+      this.elements.maybeShrinkCapacity();
     } else {
       this._init(rows, columns, new HashTable(options), options.threshold);
     }
@@ -132,6 +134,19 @@ export class SparseMatrix {
     return this;
   }
 
+  add(other) {
+    if (typeof other === 'number') return this.addS(other);
+    if (this.rows !== other.rows || this.columns !== other.columns) {
+      throw new RangeError('Matrices dimensions must be equal');
+    }
+
+    other.withEachNonZero((i, j, v) => {
+      this.set(i, j, v + this.get(i, j));
+    });
+
+    return this;
+  }
+
   mmul(other) {
     if (this.columns !== other.rows) {
       // eslint-disable-next-line no-console
@@ -144,14 +159,12 @@ export class SparseMatrix {
     const p = other.columns;
 
     const result = new SparseMatrix(m, p);
-    this.forEachNonZero((i, j, v1) => {
-      other.forEachNonZero((k, l, v2) => {
+    this.withEachNonZero((i, j, v1) => {
+      other.withEachNonZero((k, l, v2) => {
         if (j === k) {
           result.set(i, l, result.get(i, l) + v1 * v2);
         }
-        return v2;
       });
-      return v1;
     });
     return result;
   }
@@ -165,14 +178,29 @@ export class SparseMatrix {
     const result = new SparseMatrix(m * p, n * q, {
       initialCapacity: this.cardinality * other.cardinality,
     });
-    this.forEachNonZero((i, j, v1) => {
-      other.forEachNonZero((k, l, v2) => {
-        result.set(p * i + k, q * j + l, v1 * v2);
-        return v2;
+
+    this.withEachNonZero((i, j, v1) => {
+      const pi = p * i;
+      const qj = q * j;
+      other.withEachNonZero((k, l, v2) => {
+        result.set(pi + k, qj + l, v1 * v2);
       });
-      return v1;
     });
     return result;
+  }
+
+  withEachNonZero(callback) {
+    const { state, table, values } = this.elements;
+    const nbStates = state.length;
+    const activeIndex = [];
+    for (let i = 0; i < nbStates; i++) {
+      if (state[i] === 1) activeIndex.push(i);
+    }
+    const columns = this.columns;
+    for (const i of activeIndex) {
+      const key = table[i];
+      callback((key / columns) | 0, key % columns, values[i]);
+    }
   }
 
   forEachNonZero(callback) {
