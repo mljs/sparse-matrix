@@ -38,6 +38,10 @@ describe('Sparse Matrix', () => {
     expect(m3.cardinality).toBe(1);
 
     expect(m3.get(0, 1)).toBe(2);
+    expect(m3.to2DArray()).toStrictEqual([
+      [0, 2],
+      [0, 0],
+    ]);
   });
 
   it('kronecker', () => {
