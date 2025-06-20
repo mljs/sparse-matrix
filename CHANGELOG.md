@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.1](https://github.com/mljs/sparse-matrix/compare/v3.0.0...v3.0.1) (2025-06-20)
+
+
+### Bug Fixes
+
+* improve types by defining all methods and removing `eval` ([#15](https://github.com/mljs/sparse-matrix/issues/15)) ([a9a5894](https://github.com/mljs/sparse-matrix/commit/a9a5894bd8202723395933b3c89feb0263a41eb5))
+
 ## [3.0.0](https://github.com/mljs/sparse-matrix/compare/v2.1.0...v3.0.0) (2025-05-25)
 
 
