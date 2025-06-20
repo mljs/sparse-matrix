@@ -131,6 +131,7 @@ export class SparseMatrix {
     } else {
       this.elements.set(row * this.columns + column, value);
     }
+
     return this;
   }
 
@@ -147,7 +148,21 @@ export class SparseMatrix {
     return this;
   }
 
-  mmul(other) {
+  mulNew(other) {
+    if (typeof other !== 'number') {
+      throw new RangeError('the argument should be a number');
+    }
+
+    // if (this.cardinality / this.columns / this.rows > 0.1)
+    this.withEachNonZero((i, j, v) => {
+      // return v * other;
+      this.set(i, j, v * other);
+    });
+
+    return this;
+  }
+
+  mmulNew(other) {
     if (this.columns !== other.rows) {
       // eslint-disable-next-line no-console
       console.warn(
@@ -169,7 +184,7 @@ export class SparseMatrix {
       values: thisValues,
     } = this.getNonZeros();
 
-    const result = new SparseMatrix(m, p);
+    const result = new SparseMatrix(m, p, { initialCapacity: m * p });
 
     const nbOtherActive = otherCols.length;
     const nbThisActive = thisCols.length;
@@ -187,6 +202,53 @@ export class SparseMatrix {
     return result;
   }
 
+  mmul(other) {
+    if (this.columns !== other.rows) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        'Number of columns of left matrix are not equal to number of rows of right matrix.',
+      );
+    }
+
+    const m = this.rows;
+    const p = other.columns;
+
+    const {
+      columns: otherCols,
+      rows: otherRows,
+      values: otherValues,
+    } = other.getNonZeros('csr');
+    const {
+      columns: thisCols,
+      rows: thisRows,
+      values: thisValues,
+    } = this.getNonZeros('csc');
+
+    const result = new SparseMatrix(m, p, { initialCapacity: m * p + 20 });
+
+    for (let t = 0; t < thisCols.length - 1; t++) {
+      const j = t;
+      const tValues = thisValues.subarray(thisCols[t], thisCols[t + 1]);
+      const tRows = thisRows.subarray(thisCols[t], thisCols[t + 1]);
+      let initOther = 0;
+      for (let o = initOther; o < otherRows.length - 1; o++) {
+        if (o === j) {
+          initOther++;
+          const oValues = otherValues.subarray(otherRows[o], otherRows[o + 1]);
+          const oCols = otherCols.subarray(otherRows[o], otherRows[o + 1]);
+          for (let f = 0; f < tValues.length; f++) {
+            for (let k = 0; k < oValues.length; k++) {
+              const i = tRows[f];
+              const l = oCols[k];
+              result.set(i, l, result.get(i, l) + tValues[f] * oValues[k]);
+            }
+          }
+        } else if (j < o) break;
+      }
+    }
+    return result;
+  }
+
   kroneckerProduct(other) {
     const m = this.rows;
     const n = this.columns;
@@ -194,7 +256,7 @@ export class SparseMatrix {
     const q = other.columns;
 
     const result = new SparseMatrix(m * p, n * q, {
-      initialCapacity: this.cardinality * other.cardinality,
+      initialCapacity: this.cardinality * other.cardinality + 20,
     });
 
     const {
@@ -259,11 +321,12 @@ export class SparseMatrix {
     return this;
   }
 
-  getNonZeros() {
+  //'csr' | 'csc' | undefined
+  getNonZeros(format) {
     const cardinality = this.cardinality;
-    const rows = new Array(cardinality);
-    const columns = new Array(cardinality);
-    const values = new Array(cardinality);
+    const rows = new Float64Array(cardinality);
+    const columns = new Float64Array(cardinality);
+    const values = new Float64Array(cardinality);
     let idx = 0;
     this.withEachNonZero((i, j, value) => {
       rows[idx] = i;
@@ -271,7 +334,13 @@ export class SparseMatrix {
       values[idx] = value;
       idx++;
     });
-    return { rows, columns, values };
+
+    const cooMatrix = { rows, columns, values };
+
+    if (!format) return cooMatrix;
+
+    const csrMatrix = cooToCsr(cooMatrix, this.rows);
+    return format === 'csc' ? csrToCsc(csrMatrix, this.columns) : csrMatrix;
   }
 
   setThreshold(newThreshold) {
@@ -451,4 +520,58 @@ function fillTemplateFunction(template, values) {
     template = template.replace(new RegExp(`%${i}%`, 'g'), values[i]);
   }
   return template;
+}
+
+function csrToCsc(csrMatrix, numCols) {
+  const {
+    values: csrValues,
+    columns: csrColIndices,
+    rows: csrRowPtr,
+  } = csrMatrix;
+  // Initialize CSC arrays
+  const cscValues = new Float64Array(csrValues.length);
+  const cscRowIndices = new Float64Array(csrValues.length);
+  const cscColPtr = new Float64Array(numCols + 1);
+
+  // Count non-zeros per column
+  for (let i = 0; i < csrColIndices.length; i++) {
+    cscColPtr[csrColIndices[i] + 1]++;
+  }
+
+  // Compute column pointers (prefix sum)
+  for (let i = 1; i <= numCols; i++) {
+    cscColPtr[i] += cscColPtr[i - 1];
+  }
+
+  // Temporary copy for filling values
+  const next = cscColPtr.slice();
+
+  // Fill CSC arrays
+  for (let row = 0; row < csrRowPtr.length - 1; row++) {
+    for (let j = csrRowPtr[row], i = 0; j < csrRowPtr[row + 1]; j++, i++) {
+      const col = csrColIndices[j];
+      const pos = next[col];
+      cscValues[pos] = csrValues[j];
+      cscRowIndices[pos] = row;
+      next[col]++;
+    }
+    // if (row === 1) break;
+  }
+
+  return { rows: cscRowIndices, columns: cscColPtr, values: cscValues };
+}
+
+function cooToCsr(cooMatrix, nbRows = 9) {
+  const { values, columns, rows } = cooMatrix;
+  //could not be the same length
+  const csrRowPtr = new Float64Array(nbRows + 1);
+  const length = values.length;
+  let currentRow = rows[0];
+  for (let index = 0; index < length; ) {
+    const prev = index;
+    while (currentRow === rows[index] && index < length) ++index;
+    csrRowPtr[currentRow + 1] = index;
+    currentRow += 1;
+  }
+  return { rows: csrRowPtr, columns, values };
 }
