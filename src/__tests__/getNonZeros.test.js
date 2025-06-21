@@ -1,4 +1,6 @@
-import { SparseMatrix } from '../index';
+import { describe, expect, it } from 'vitest';
+
+import { SparseMatrix } from '../index.js';
 
 describe('Sparse Matrix', () => {
   it('getNonZeros', () => {

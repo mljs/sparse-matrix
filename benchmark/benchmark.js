@@ -1,7 +1,10 @@
-import { SparseMatrix } from '../src/index.js';
+import fs from 'node:fs';
+
 import { Matrix } from 'ml-matrix';
+
+import { SparseMatrix } from '../src/index.js';
+
 import { SparseMatrix as SparseMatrixOld } from './class/SparseMatrixOld.js';
-import fs from 'fs';
 
 function randomSparseMatrix(rows, cols, density = 0.01) {
   const matrix = [];
@@ -176,15 +179,17 @@ function runSizeSweepBenchmark() {
               3,
             );
 
-            const denseAvg = benchmark(() => {
-              denseA.mmul(denseB), 'denseMatrix', 3;
-            });
+            const denseAvg = benchmark(
+              () => denseA.mmul(denseB),
+              'denseMatrix',
+              3,
+            );
 
             results.push({
               densityA,
               densityB,
-              A_shape: [m, n],
-              B_shape: [n, p],
+              aShape: [m, n],
+              bShape: [n, p],
               dense: denseAvg,
               mmulNew: mmulNewAvg,
               mmul: mmulAvg,

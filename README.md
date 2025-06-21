@@ -1,4 +1,4 @@
-# sparse-matrix
+# ml-sparse-matrix
 
 [![NPM version][npm-image]][npm-url]
 [![coverage status][codecov-image]][codecov-url]
@@ -13,7 +13,7 @@ Sparse matrix library.
 ## Usage
 
 ```js
-import { SparseMatrix } from "ml-sparse-matrix";
+import { SparseMatrix } from 'ml-sparse-matrix';
 
 const matrix1 = new SparseMatrix([
   [1, 2],
