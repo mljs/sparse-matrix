@@ -54,10 +54,12 @@ function printWinner(label1, avg1, label2, avg2) {
 
 function runBenchmarks() {
   const m = 128;
-  const n = 64;
+  const n = 128;
   const p = 128;
-  const densityA = 0.03;
-  const densityB = 0.03;
+  const densityA = 0.01;
+  const densityB = 0.01;
+
+  const nbIterations = 3;
   const A = randomSparseMatrix(m, n, densityA);
   const B = randomSparseMatrix(n, p, densityB);
 
@@ -66,10 +68,11 @@ function runBenchmarks() {
 
   const AOld = new SparseMatrixOld(denseA);
   const BOld = new SparseMatrixOld(denseB);
-  A.cardinality;
+
   denseA = new Matrix(denseA);
   denseB = new Matrix(denseB);
 
+  denseA.mmul(denseB);
   // 1. add vs addNew
   // const addAvg = benchmark(() => {
   //   const a = AOld.clone();
@@ -90,7 +93,7 @@ function runBenchmarks() {
       A.mmul(B);
     },
     'mmulNew',
-    3,
+    nbIterations,
   );
 
   const mmulAvg = benchmark(
@@ -98,7 +101,7 @@ function runBenchmarks() {
       AOld.mmul(BOld);
     },
     'mmul',
-    3,
+    nbIterations,
   );
 
   const denseAvg = benchmark(
@@ -106,7 +109,7 @@ function runBenchmarks() {
       denseA.mmul(denseB);
     },
     'denseMatrix',
-    3,
+    nbIterations,
   );
 
   printWinner('mmul', mmulAvg, 'mmulNew', mmulNewAvg);
