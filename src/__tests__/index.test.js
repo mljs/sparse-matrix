@@ -3,6 +3,24 @@ import { describe, expect, it } from 'vitest';
 import { SparseMatrix } from '../index.js';
 
 describe('Sparse Matrix', () => {
+  it('add', () => {
+    let m1 = new SparseMatrix([
+      [2, 0, 1],
+      [0, 0, 3],
+      [2, 0, 1],
+    ]);
+    let m2 = new SparseMatrix([
+      [0, 1, 5],
+      [2, 0, 0],
+      [-2, 0, -1],
+    ]);
+    let m3 = m1.add(m2).to2DArray();
+    expect(m3).toStrictEqual([
+      [2, 1, 6],
+      [2, 0, 3],
+      [0, 0, 0],
+    ]);
+  });
   it('mmul', () => {
     let m1 = new SparseMatrix([
       [2, 0, 1],
@@ -20,6 +38,33 @@ describe('Sparse Matrix', () => {
     expect(m3.cardinality).toBe(1);
 
     expect(m3.get(0, 1)).toBe(2);
+    expect(m3.to2DArray()).toStrictEqual([
+      [0, 2],
+      [0, 0],
+    ]);
+
+    // Compare with dense multiplication
+    const denseM1 = m1.to2DArray();
+    const denseM2 = m2.to2DArray();
+    const expectedDense = denseMatrixMultiply(denseM1, denseM2);
+    expect(m3.to2DArray()).toStrictEqual(expectedDense);
+  });
+
+  it('mmul', () => {
+    const size = 32;
+    const density = 0.1;
+    const m1 = randomSparseMatrix(size, size, density);
+    const m2 = randomSparseMatrix(size, size, density);
+    let m3 = m1.mmul(m2);
+
+    const denseM1 = m1.to2DArray();
+    const denseM2 = m2.to2DArray();
+
+    const newSparse = new SparseMatrix(denseM1);
+    expect(newSparse.to2DArray()).toStrictEqual(denseM1);
+    const expectedDense = denseMatrixMultiply(denseM1, denseM2);
+
+    expect(m3.to2DArray()).toStrictEqual(expectedDense);
   });
 
   it('kronecker', () => {
@@ -122,3 +167,32 @@ describe('Banded matrices', () => {
     expect(matrix4.isBanded(1)).toBe(true);
   });
 });
+
+function denseMatrixMultiply(A, B) {
+  const rowsA = A.length;
+  const colsA = A[0].length;
+  const colsB = B[0].length;
+  const result = Array.from({ length: rowsA }, () => Array(colsB).fill(0));
+  for (let i = 0; i < rowsA; i++) {
+    for (let j = 0; j < colsB; j++) {
+      for (let k = 0; k < colsA; k++) {
+        result[i][j] += A[i][k] * B[k][j];
+      }
+    }
+  }
+  return result;
+}
+
+function randomSparseMatrix(rows, cols, density = 0.01) {
+  const matrix = [];
+  for (let i = 0; i < rows; i++) {
+    const row = new Float64Array(cols);
+    for (let j = 0; j < cols; j++) {
+      if (Math.random() < density) {
+        row[j] = Math.random() * 10;
+      }
+    }
+    matrix.push(row);
+  }
+  return new SparseMatrix(matrix);
+}

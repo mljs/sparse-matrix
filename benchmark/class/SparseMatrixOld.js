@@ -1,6 +1,5 @@
 import HashTable from 'ml-hash-table';
 
-/** @typedef {(row: number, column: number, value: number) => void} WithEachNonZeroCallback */
 /** @typedef {(row: number, column: number, value: number) => number | false} ForEachNonZeroCallback */
 
 export class SparseMatrix {
@@ -19,12 +18,11 @@ export class SparseMatrix {
 
     if (Array.isArray(rows)) {
       const matrix = rows;
-      const nbRows = matrix.length;
-      const nbColmuns = matrix[0].length;
-      options = columns || { initialCapacity: nbRows * nbColmuns };
+      rows = matrix.length;
+      options = columns || {};
       columns = matrix[0].length;
-      this._init(nbRows, columns, new HashTable(options), options.threshold);
-      for (let i = 0; i < nbRows; i++) {
+      this._init(rows, columns, new HashTable(options), options.threshold);
+      for (let i = 0; i < rows; i++) {
         for (let j = 0; j < columns; j++) {
           let value = matrix[i][j];
           if (this.threshold && Math.abs(value) < this.threshold) value = 0;
@@ -33,7 +31,6 @@ export class SparseMatrix {
           }
         }
       }
-      this.elements.maybeShrinkCapacity();
     } else {
       this._init(rows, columns, new HashTable(options), options.threshold);
     }
@@ -153,7 +150,6 @@ export class SparseMatrix {
     } else {
       this.elements.set(row * this.columns + column, value);
     }
-
     return this;
   }
 
@@ -172,51 +168,17 @@ export class SparseMatrix {
     const m = this.rows;
     const p = other.columns;
 
-    const result = matrixCreateEmpty(m, p);
-    const useCscCsr = useCscCsrFormat(this, other);
-
-    const {
-      columns: otherCols,
-      rows: otherRows,
-      values: otherValues,
-    } = other.getNonZeros(useCscCsr ? { format: 'csr' } : {});
-    const {
-      columns: thisCols,
-      rows: thisRows,
-      values: thisValues,
-    } = this.getNonZeros(useCscCsr ? { format: 'csc' } : {});
-
-    if (useCscCsr) {
-      const thisNbCols = this.columns;
-      for (let t = 0; t < thisNbCols; t++) {
-        const tValues = thisValues.subarray(thisCols[t], thisCols[t + 1]);
-        const tRows = thisRows.subarray(thisCols[t], thisCols[t + 1]);
-        const oValues = otherValues.subarray(otherRows[t], otherRows[t + 1]);
-        const oCols = otherCols.subarray(otherRows[t], otherRows[t + 1]);
-        for (let f = 0; f < tValues.length; f++) {
-          for (let k = 0; k < oValues.length; k++) {
-            const i = tRows[f];
-            const l = oCols[k];
-            result[i][l] += tValues[f] * oValues[k];
-          }
+    const result = new SparseMatrix(m, p);
+    this.forEachNonZero((i, j, v1) => {
+      other.forEachNonZero((k, l, v2) => {
+        if (j === k) {
+          result.set(i, l, result.get(i, l) + v1 * v2);
         }
-      }
-    } else {
-      const nbOtherActive = otherCols.length;
-      const nbThisActive = thisCols.length;
-      for (let t = 0; t < nbThisActive; t++) {
-        const i = thisRows[t];
-        const j = thisCols[t];
-        for (let o = 0; o < nbOtherActive; o++) {
-          if (j === otherRows[o]) {
-            const l = otherCols[o];
-            result[i][l] += otherValues[o] * thisValues[t];
-          }
-        }
-      }
-    }
-
-    return new SparseMatrix(result);
+        return v2;
+      });
+      return v1;
+    });
+    return result;
   }
 
   /**
@@ -230,61 +192,16 @@ export class SparseMatrix {
     const q = other.columns;
 
     const result = new SparseMatrix(m * p, n * q, {
-      initialCapacity: this.cardinality * other.cardinality + 20,
+      initialCapacity: this.cardinality * other.cardinality,
     });
-
-    const {
-      columns: otherCols,
-      rows: otherRows,
-      values: otherValues,
-    } = other.getNonZeros();
-    const {
-      columns: thisCols,
-      rows: thisRows,
-      values: thisValues,
-    } = this.getNonZeros();
-
-    const nbThisActive = thisCols.length;
-    const nbOtherActive = otherCols.length;
-    for (let t = 0; t < nbThisActive; t++) {
-      const pi = p * thisRows[t];
-      const qj = q * thisCols[t];
-      for (let o = 0; o < nbOtherActive; o++) {
-        result.set(
-          pi + otherRows[o],
-          qj + otherCols[o],
-          otherValues[o] * thisValues[t],
-        );
-      }
-    }
-
+    this.forEachNonZero((i, j, v1) => {
+      other.forEachNonZero((k, l, v2) => {
+        result.set(p * i + k, q * j + l, v1 * v2);
+        return v2;
+      });
+      return v1;
+    });
     return result;
-  }
-
-  /**
-   * Calls `callback` for each value in the matrix that is not zero.
-   * Unlike `forEachNonZero`, the callback's return value has no effect.
-   * @param {WithEachNonZeroCallback} callback
-   * @param {boolean} [sort]
-   * @returns {void}
-   */
-  withEachNonZero(callback, sort = false) {
-    const { state, table, values } = this.elements;
-    const nbStates = state.length;
-    const activeIndex = new Float64Array(this.cardinality);
-    for (let i = 0, j = 0; i < nbStates; i++) {
-      if (state[i] === 1) activeIndex[j++] = i;
-    }
-
-    if (sort) {
-      activeIndex.sort((a, b) => table[a] - table[b]);
-    }
-
-    const columns = this.columns;
-    for (const i of activeIndex) {
-      const key = table[i];
-      callback((key / columns) | 0, key % columns, values[i]);
-    }
   }
 
   /**
@@ -317,34 +234,23 @@ export class SparseMatrix {
     return this;
   }
 
-  getNonZeros(options = {}) {
+  getNonZeros() {
     const cardinality = this.cardinality;
-    const rows = new Float64Array(cardinality);
-    const columns = new Float64Array(cardinality);
-    const values = new Float64Array(cardinality);
-
-    const { format, sort = false } = options;
-
+    /** @type {number[]} */
+    const rows = new Array(cardinality);
+    /** @type {number[]} */
+    const columns = new Array(cardinality);
+    /** @type {number[]} */
+    const values = new Array(cardinality);
     let idx = 0;
-    this.withEachNonZero((i, j, value) => {
+    this.forEachNonZero((i, j, value) => {
       rows[idx] = i;
       columns[idx] = j;
       values[idx] = value;
       idx++;
-    }, sort || format);
-
-    const cooMatrix = { rows, columns, values };
-
-    if (!format) return cooMatrix;
-
-    if (!['csr', 'csc'].includes(format.toLowerCase())) {
-      throw new Error(`format ${format} is not supported`);
-    }
-
-    const csrMatrix = cooToCsr(cooMatrix, this.rows);
-    return format.toLowerCase() === 'csc'
-      ? csrToCsc(csrMatrix, this.columns)
-      : csrMatrix;
+      return value;
+    });
+    return { rows, columns, values };
   }
 
   /**
@@ -366,8 +272,9 @@ export class SparseMatrix {
     let trans = new SparseMatrix(this.columns, this.rows, {
       initialCapacity: this.cardinality,
     });
-    this.withEachNonZero((i, j, value) => {
+    this.forEachNonZero((i, j, value) => {
       trans.set(j, i, value);
+      return value;
     });
     return trans;
   }
@@ -1477,84 +1384,3 @@ SparseMatrix.prototype.klass = 'Matrix';
 
 SparseMatrix.identity = SparseMatrix.eye;
 SparseMatrix.prototype.tensorProduct = SparseMatrix.prototype.kroneckerProduct;
-
-function csrToCsc(csrMatrix, numCols) {
-  const {
-    values: csrValues,
-    columns: csrColIndices,
-    rows: csrRowPtr,
-  } = csrMatrix;
-
-  const cscValues = new Float64Array(csrValues.length);
-  const cscRowIndices = new Float64Array(csrValues.length);
-  const cscColPtr = new Float64Array(numCols + 1);
-
-  for (let i = 0; i < csrColIndices.length; i++) {
-    cscColPtr[csrColIndices[i] + 1]++;
-  }
-
-  for (let i = 1; i <= numCols; i++) {
-    cscColPtr[i] += cscColPtr[i - 1];
-  }
-
-  const next = cscColPtr.slice();
-
-  for (let row = 0; row < csrRowPtr.length - 1; row++) {
-    for (let j = csrRowPtr[row], i = 0; j < csrRowPtr[row + 1]; j++, i++) {
-      const col = csrColIndices[j];
-      const pos = next[col];
-      cscValues[pos] = csrValues[j];
-      cscRowIndices[pos] = row;
-      next[col]++;
-    }
-  }
-
-  return { rows: cscRowIndices, columns: cscColPtr, values: cscValues };
-}
-
-function cooToCsr(cooMatrix, nbRows = 9) {
-  const { values, columns, rows } = cooMatrix;
-  //could not be the same length
-  const csrRowPtr = new Float64Array(nbRows + 1);
-  const length = values.length;
-  let currentRow = rows[0];
-  for (let index = 0; index < length; ) {
-    while (currentRow === rows[index] && index < length) ++index;
-    csrRowPtr[currentRow + 1] = index;
-    currentRow += 1;
-  }
-  return { rows: csrRowPtr, columns, values };
-}
-
-function matrixCreateEmpty(nbRows, nbColumns) {
-  const newMatrix = [];
-  for (let row = 0; row < nbRows; row++) {
-    newMatrix.push(new Float64Array(nbColumns));
-  }
-  return newMatrix;
-}
-
-function useCscCsrFormat(A, B) {
-  // Validar dimensiones
-  if (!A.rows || !A.columns || !B.rows || !B.columns || A.columns !== B.rows) {
-    throw new Error('Dimensiones de matrices inválidas o no compatibles.');
-  }
-
-  const densityA = A.cardinality / (A.rows * A.columns);
-  const densityB = B.cardinality / (B.rows * B.columns);
-
-  const M = A.rows;
-  const K = A.columns;
-  const N = B.columns;
-
-  const isHighDensity = densityA >= 0.015 || densityB >= 0.015;
-  const isVeryHighDensity = densityB >= 0.03;
-  const isLargeMatrix = M >= 64 || K >= 64 || N >= 64;
-  const isLargeSquareMatrix = M === K && K === N && M >= 128;
-
-  return (
-    isVeryHighDensity ||
-    (isHighDensity && isLargeMatrix) ||
-    (isLargeSquareMatrix && densityA >= 0.03)
-  );
-}
