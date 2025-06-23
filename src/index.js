@@ -156,22 +156,6 @@ export class SparseMatrix {
     return this;
   }
 
-  mul(other) {
-    if (typeof other !== 'number') {
-      throw new RangeError('the argument should be a number');
-    }
-
-    if (other === 0) {
-      return new SparseMatrix(this.rows, this.columns);
-    }
-
-    this.withEachNonZero((i, j, v) => {
-      this.set(i, j, v * other);
-    });
-
-    return this;
-  }
-
   mmul(other) {
     if (this.columns !== other.rows) {
       // eslint-disable-next-line no-console
@@ -510,10 +494,18 @@ export class SparseMatrix {
    * @returns {this}
    */
   mulM(matrix) {
-    matrix.forEachNonZero((i, j, v) => {
-      this.set(i, j, this.get(i, j) * v);
-      return v;
+    if (typeof matrix !== 'number') {
+      throw new RangeError('the argument should be a number');
+    }
+
+    if (matrix === 0) {
+      this.elements = new HashTable();
+    }
+
+    this.withEachNonZero((i, j, v) => {
+      this.set(i, j, v * matrix);
     });
+
     return this;
   }
 
@@ -1503,7 +1495,6 @@ function csrToCsc(csrMatrix, numCols) {
 
 function cooToCsr(cooMatrix, nbRows = 9) {
   const { values, columns, rows } = cooMatrix;
-  //could not be the same length
   const csrRowPtr = new Float64Array(nbRows + 1);
   const length = values.length;
   let currentRow = rows[0];
