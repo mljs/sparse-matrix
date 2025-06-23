@@ -199,45 +199,29 @@ export class SparseMatrix {
     const p = other.columns;
 
     const result = matrixCreateEmpty(m, p);
-    const useCscCsr = useCscCsrFormat(this, other);
 
     const {
       columns: otherCols,
       rows: otherRows,
       values: otherValues,
-    } = other.getNonZeros(useCscCsr ? { format: 'csr' } : {});
+    } = other.getNonZeros({ format: 'csr' });
     const {
       columns: thisCols,
       rows: thisRows,
       values: thisValues,
-    } = this.getNonZeros(useCscCsr ? { format: 'csc' } : {});
+    } = this.getNonZeros({ format: 'csc' });
 
-    if (useCscCsr) {
-      const thisNbCols = this.columns;
-      for (let t = 0; t < thisNbCols; t++) {
-        const tValues = thisValues.subarray(thisCols[t], thisCols[t + 1]);
-        const tRows = thisRows.subarray(thisCols[t], thisCols[t + 1]);
-        const oValues = otherValues.subarray(otherRows[t], otherRows[t + 1]);
-        const oCols = otherCols.subarray(otherRows[t], otherRows[t + 1]);
-        for (let f = 0; f < tValues.length; f++) {
-          for (let k = 0; k < oValues.length; k++) {
-            const i = tRows[f];
-            const l = oCols[k];
-            result[i][l] += tValues[f] * oValues[k];
-          }
-        }
-      }
-    } else {
-      const nbOtherActive = otherCols.length;
-      const nbThisActive = thisCols.length;
-      for (let t = 0; t < nbThisActive; t++) {
-        const i = thisRows[t];
-        const j = thisCols[t];
-        for (let o = 0; o < nbOtherActive; o++) {
-          if (j === otherRows[o]) {
-            const l = otherCols[o];
-            result[i][l] += otherValues[o] * thisValues[t];
-          }
+    const thisNbCols = this.columns;
+    for (let t = 0; t < thisNbCols; t++) {
+      const tStart = thisCols[t];
+      const tEnd = thisCols[t + 1];
+      const oStart = otherRows[t];
+      const oEnd = otherRows[t + 1];
+      for (let f = tStart; f < tEnd; f++) {
+        for (let k = oStart; k < oEnd; k++) {
+          const i = thisRows[f];
+          const l = otherCols[k];
+          result[i][l] += thisValues[f] * otherValues[k];
         }
       }
     }
@@ -355,15 +339,13 @@ export class SparseMatrix {
       idx++;
     }, sort || format);
 
-    const cooMatrix = { rows, columns, values };
-
-    if (!format) return cooMatrix;
+    if (!format) return { rows, columns, values };
 
     if (!['csr', 'csc'].includes(format.toLowerCase())) {
       throw new Error(`format ${format} is not supported`);
     }
 
-    const csrMatrix = cooToCsr(cooMatrix, this.rows);
+    const csrMatrix = cooToCsr({ rows, columns, values }, this.rows);
     return format.toLowerCase() === 'csc'
       ? csrToCsc(csrMatrix, this.columns)
       : csrMatrix;
