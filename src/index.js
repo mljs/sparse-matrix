@@ -156,28 +156,13 @@ export class SparseMatrix {
     return this;
   }
 
-  add(other) {
-    if (typeof other === 'number') return this.addS(other);
-    if (this.rows !== other.rows || this.columns !== other.columns) {
-      throw new RangeError('Matrices dimensions must be equal');
-    }
-
-    other.withEachNonZero((i, j, v) => {
-      this.set(i, j, v + this.get(i, j));
-    });
-
-    return this;
-  }
-
   mul(other) {
     if (typeof other !== 'number') {
       throw new RangeError('the argument should be a number');
     }
 
     if (other === 0) {
-      return new SparseMatrix(this.rows, this.columns, {
-        initialCapacity: this.cardinality,
-      });
+      return new SparseMatrix(this.rows, this.columns);
     }
 
     this.withEachNonZero((i, j, v) => {
