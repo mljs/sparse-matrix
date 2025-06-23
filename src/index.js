@@ -1538,28 +1538,3 @@ function matrixCreateEmpty(nbRows, nbColumns) {
   }
   return newMatrix;
 }
-
-function useCscCsrFormat(A, B) {
-  // Validar dimensiones
-  if (!A.rows || !A.columns || !B.rows || !B.columns || A.columns !== B.rows) {
-    throw new Error('Dimensiones de matrices inválidas o no compatibles.');
-  }
-
-  const densityA = A.cardinality / (A.rows * A.columns);
-  const densityB = B.cardinality / (B.rows * B.columns);
-
-  const M = A.rows;
-  const K = A.columns;
-  const N = B.columns;
-
-  const isHighDensity = densityA >= 0.015 || densityB >= 0.015;
-  const isVeryHighDensity = densityB >= 0.03;
-  const isLargeMatrix = M >= 64 || K >= 64 || N >= 64;
-  const isLargeSquareMatrix = M === K && K === N && M >= 128;
-
-  return (
-    isVeryHighDensity ||
-    (isHighDensity && isLargeMatrix) ||
-    (isLargeSquareMatrix && densityA >= 0.03)
-  );
-}

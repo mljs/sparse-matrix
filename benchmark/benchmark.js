@@ -1,23 +1,33 @@
 import { SparseMatrix } from '../src/index.js';
 import { Matrix } from 'ml-matrix';
 import { SparseMatrix as SparseMatrixOld } from './class/SparseMatrixOld.js';
+// import { SparseMatrix as SparseMatrixOld } from '../src/Elements.js';
 import fs from 'fs';
 
 function randomSparseMatrix(rows, cols, density = 0.01) {
-  const matrix = [];
-  for (let i = 0; i < rows; i++) {
-    const row = new Array(cols).fill(0);
-    for (let j = 0; j < cols; j++) {
-      if (Math.random() < density) {
-        row[j] = Math.random() * 10;
-      }
-    }
-    matrix.push(row);
+  const total = rows * cols;
+  const cardinality = Math.round(total * density);
+  const positions = new Set();
+
+  // Generate unique random positions
+  while (positions.size < cardinality) {
+    positions.add(Math.floor(Math.random() * total));
   }
+
+  // Build the matrix with zeros
+  const matrix = Array.from({ length: rows }, () => new Float64Array(cols));
+
+  // Assign random values to the selected positions
+  for (const pos of positions) {
+    const i = Math.floor(pos / cols);
+    const j = pos % cols;
+    matrix[i][j] = Math.random() * 10;
+  }
+
   return new SparseMatrix(matrix);
 }
 
-function benchmark(fn, label, iterations = 5) {
+function benchmark(fn, label, iterations = 5, logIt = false) {
   const times = [];
   for (let i = 0; i < iterations; i++) {
     const t0 = performance.now();
@@ -26,7 +36,9 @@ function benchmark(fn, label, iterations = 5) {
     times.push(t1 - t0);
   }
   const avg = times.reduce((a, b) => a + b, 0) / times.length;
-  console.log(`${label}: avg ${avg.toFixed(2)} ms over ${iterations} runs`);
+  if (logIt) {
+    console.log(`${label}: avg ${avg.toFixed(2)} ms over ${iterations} runs`);
+  }
   return avg;
 }
 
@@ -53,9 +65,9 @@ function printWinner(label1, avg1, label2, avg2) {
 }
 
 function runBenchmarks() {
-  const m = 128;
-  const n = 128;
-  const p = 128;
+  const m = 256;
+  const n = 256;
+  const p = 256;
   const densityA = 0.01;
   const densityB = 0.01;
 
@@ -137,8 +149,9 @@ function runBenchmarks() {
 }
 
 function runSizeSweepBenchmark() {
-  const sizes = [8, 16, 32, 64, 128];
-  const densities = [0.01, 0.015, 0.02, 0.025, 0.03, 0.35];
+  const nbIterations = 3;
+  const sizes = [32, 64, 128, 256];
+  const densities = [0.01, 0.015, 0.02, 0.025, 0.03];
   const results = [];
 
   for (const densityA of densities) {
@@ -165,7 +178,7 @@ function runSizeSweepBenchmark() {
                 A.mmul(B);
               },
               'mmulNew',
-              3,
+              nbIterations,
             );
 
             const mmulAvg = benchmark(
@@ -173,12 +186,16 @@ function runSizeSweepBenchmark() {
                 AOld.mmul(BOld);
               },
               'mmul',
-              3,
+              nbIterations,
             );
 
-            const denseAvg = benchmark(() => {
-              denseA.mmul(denseB), 'denseMatrix', 3;
-            });
+            const denseAvg = benchmark(
+              () => {
+                denseA.mmul(denseB);
+              },
+              'denseMatrix',
+              nbIterations,
+            );
 
             results.push({
               densityA,
@@ -186,8 +203,8 @@ function runSizeSweepBenchmark() {
               A_shape: [m, n],
               B_shape: [n, p],
               dense: denseAvg,
-              mmulNew: mmulNewAvg,
-              mmul: mmulAvg,
+              new: mmulNewAvg,
+              old: mmulAvg,
             });
           }
         }
@@ -202,6 +219,6 @@ function runSizeSweepBenchmark() {
   console.log('Size sweep benchmark results saved to size_sweep_results.json');
 }
 
-runBenchmarks();
+// runBenchmarks();
 // Uncomment to run the size sweep benchmark
-// runSizeSweepBenchmark();
+runSizeSweepBenchmark();
