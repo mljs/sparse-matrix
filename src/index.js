@@ -1458,6 +1458,12 @@ SparseMatrix.prototype.klass = 'Matrix';
 SparseMatrix.identity = SparseMatrix.eye;
 SparseMatrix.prototype.tensorProduct = SparseMatrix.prototype.kroneckerProduct;
 
+/**
+ * Converts a matrix from Compressed Sparse Row (CSR) format to Compressed Sparse Column (CSC) format.
+ * @param {Object} csrMatrix - The matrix in CSR format with properties: values, columns, rows.
+ * @param {number} numCols - The number of columns in the matrix.
+ * @returns {{rows: Float64Array, columns: Float64Array, values: Float64Array}} The matrix in CSC format.
+ */
 function csrToCsc(csrMatrix, numCols) {
   const {
     values: csrValues,
@@ -1492,13 +1498,18 @@ function csrToCsc(csrMatrix, numCols) {
   return { rows: cscRowIndices, columns: cscColPtr, values: cscValues };
 }
 
+/**
+ * Converts a matrix from Coordinate (COO) format to Compressed Sparse Row (CSR) format.
+ * @param {Object} cooMatrix - The matrix in COO format with properties: values, columns, rows.
+ * @param {number} [nbRows=9] - The number of rows in the matrix.
+ * @returns {{rows: Float64Array, columns: Float64Array, values: Float64Array}} The matrix in CSR format.
+ */
 function cooToCsr(cooMatrix, nbRows = 9) {
   const { values, columns, rows } = cooMatrix;
   const csrRowPtr = new Float64Array(nbRows + 1);
   const length = values.length;
   let currentRow = rows[0];
   for (let index = 0; index < length; ) {
-    const prev = index;
     while (currentRow === rows[index] && index < length) ++index;
     csrRowPtr[currentRow + 1] = index;
     currentRow += 1;
@@ -1506,6 +1517,12 @@ function cooToCsr(cooMatrix, nbRows = 9) {
   return { rows: csrRowPtr, columns, values };
 }
 
+/**
+ * Creates an empty 2D matrix (array of Float64Array) with the given dimensions.
+ * @param {number} nbRows - Number of rows.
+ * @param {number} nbColumns - Number of columns.
+ * @returns {Float64Array[]} A 2D array representing the matrix.
+ */
 function matrixCreateEmpty(nbRows, nbColumns) {
   const newMatrix = [];
   for (let row = 0; row < nbRows; row++) {
