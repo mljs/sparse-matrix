@@ -209,7 +209,7 @@ export class SparseMatrix {
     const q = other.columns;
 
     const result = new SparseMatrix(m * p, n * q, {
-      initialCapacity: this.cardinality * other.cardinality + 20,
+      initialCapacity: this.cardinality * other.cardinality + 10,
     });
 
     const {
