@@ -19,8 +19,7 @@ export class SparseMatrix {
     if (Array.isArray(rows)) {
       const matrix = rows;
       const nbRows = matrix.length;
-      const nbColmuns = matrix[0].length;
-      options = columns || { initialCapacity: nbRows * nbColmuns };
+      options = columns || {};
       columns = matrix[0].length;
       this._init(nbRows, columns, new HashTable(options), options.threshold);
       for (let i = 0; i < nbRows; i++) {
