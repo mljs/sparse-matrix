@@ -1,7 +1,13 @@
 import { run, bench, group, do_not_optimize } from 'mitata';
 import { Matrix } from 'ml-matrix';
+
 import { SparseMatrix as SparseMatrixOld } from './class/SparseMatrixOld2.js';
 import { randomSparseMatrix } from './utils/randomSparseMatrix.js';
+
+/* eslint 
+func-names: 0 
+camelcase: 0
+*/
 
 const sizes = [64, 128, 256];
 const densities = [0.01, 0.015, 0.02, 0.025, 0.03];

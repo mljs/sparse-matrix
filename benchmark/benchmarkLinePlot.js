@@ -1,10 +1,17 @@
 import { run, bench, lineplot, do_not_optimize } from 'mitata';
-import { SparseMatrix } from '../src/index.js';
 import { xSequentialFillFromStep } from 'ml-spectra-processing';
+
+import { SparseMatrix } from '../src/index.js';
+
 import { SparseMatrix as SparseMatrixOld } from './class/SparseMatrixOld.js';
 import { randomMatrix } from './utils/randomMatrix.js';
+
 const density = 0.02; // Fixed density for this comparison;
 
+/* eslint 
+func-names: 0 
+camelcase: 0
+*/
 // Prepare matrices once
 const sizes = Array.from(
   xSequentialFillFromStep({ from: 4, step: 4, size: 13 }),

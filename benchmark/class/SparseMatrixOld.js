@@ -159,7 +159,6 @@ export class SparseMatrix {
    */
   mmul(other) {
     if (this.columns !== other.rows) {
-      // eslint-disable-next-line no-console
       console.warn(
         'Number of columns of left matrix are not equal to number of rows of right matrix.',
       );
