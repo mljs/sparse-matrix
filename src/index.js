@@ -288,6 +288,17 @@ export class SparseMatrix {
     return this;
   }
 
+  /**
+   * Returns the non-zero elements of the matrix in coordinate (COO), CSR, or CSC format.
+   *
+   * @param {Object} [options={}] - Options for output format and sorting.
+   * @param {'csr'|'csc'} [options.format] - If specified, returns the result in CSR or CSC format. Otherwise, returns COO format.
+   * @param {boolean} [options.sort] - If true, sorts the non-zero elements by their indices.
+   * @returns {Object} If no format is specified, returns an object with Float64Array `rows`, `columns`, and `values` (COO format).
+   *                   If format is 'csr', returns { rows, columns, values } in CSR format.
+   *                   If format is 'csc', returns { rows, columns, values } in CSC format.
+   * @throws {Error} If an unsupported format is specified.
+   */
   getNonZeros(options = {}) {
     const cardinality = this.cardinality;
     /** @type {Float64Array} */
@@ -297,7 +308,7 @@ export class SparseMatrix {
     /** @type {Float64Array} */
     const values = new Float64Array(cardinality);
 
-    const { format, sort = false } = options;
+    const { format, sort = format !== undefined } = options;
 
     let idx = 0;
     this.withEachNonZero((i, j, value) => {
@@ -305,11 +316,11 @@ export class SparseMatrix {
       columns[idx] = j;
       values[idx] = value;
       idx++;
-    }, sort || format);
+    }, sort);
 
     if (!format) return { rows, columns, values };
 
-    if (!['csr', 'csc'].includes(format.toLowerCase())) {
+    if (!['csr', 'csc'].includes(format)) {
       throw new Error(`format ${format} is not supported`);
     }
 
@@ -1501,10 +1512,10 @@ function csrToCsc(csrMatrix, numCols) {
 /**
  * Converts a matrix from Coordinate (COO) format to Compressed Sparse Row (CSR) format.
  * @param {Object} cooMatrix - The matrix in COO format with properties: values, columns, rows.
- * @param {number} [nbRows=9] - The number of rows in the matrix.
+ * @param {number} nbRows - The number of rows in the matrix.
  * @returns {{rows: Float64Array, columns: Float64Array, values: Float64Array}} The matrix in CSR format.
  */
-function cooToCsr(cooMatrix, nbRows = 9) {
+function cooToCsr(cooMatrix, nbRows) {
   const { values, columns, rows } = cooMatrix;
   const csrRowPtr = new Float64Array(nbRows + 1);
   const length = values.length;
