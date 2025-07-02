@@ -165,7 +165,7 @@ export class SparseMatrix {
 
     if (this.cardinality < 42 && other.cardinality < 42) {
       return this._mmulSmall(other);
-    } else if (other.rows > 100 && other.cardinality < 110) {
+    } else if (other.rows > 100 && other.cardinality < 100) {
       return this._mmulLowDensity(other);
     }
 

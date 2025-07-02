@@ -1,4 +1,4 @@
-import { run, bench, group, do_not_optimize } from 'mitata';
+import { run, bench, do_not_optimize, lineplot } from 'mitata';
 import { xSequentialFillFromStep } from 'ml-spectra-processing';
 
 import { SparseMatrix } from '../src/index.js';
@@ -13,7 +13,7 @@ camelcase: 0
 */
 // Prepare matrices once
 const cardinalities = Array.from(
-  xSequentialFillFromStep({ from: 10, step: 5, size: 25 }),
+  xSequentialFillFromStep({ from: 10, step: 5, size: 2 }),
 );
 
 // const dimensions = Array.from(
@@ -21,7 +21,7 @@ const cardinalities = Array.from(
 // );
 
 const dimensions = [512];
-group('comparation internal method', () => {
+lineplot(() => {
   bench('hibrid($cardinality,$dimension)', function* (ctx) {
     const cardinality = ctx.get('cardinality');
     const size = ctx.get('dimension');
@@ -104,12 +104,12 @@ const results = await run({
   // warmup_samples: 10,
   // warmup_threshold: 100, // ms
   // Longer minimum time for stable measurements
-  min_cpu_time: 2000, // 2 seconds minimum
-  // Batch settings to reduce variance
-  batch_samples: 5,
-  batch_threshold: 10, // ms
-  // Enable colors
-  colors: true,
+  // min_cpu_time: 2000, // 2 seconds minimum
+  // // Batch settings to reduce variance
+  // batch_samples: 5,
+  // batch_threshold: 10, // ms
+  // // Enable colors
+  // colors: true,
 });
 
 // Process and store results

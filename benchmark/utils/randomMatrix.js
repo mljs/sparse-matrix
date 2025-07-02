@@ -1,6 +1,5 @@
-export function randomMatrix(rows, cols, density = 0.01) {
+export function randomMatrix(rows, cols, cardinality) {
   const total = rows * cols;
-  const cardinality = Math.ceil(total * density);
   const positions = new Set();
 
   // Generate unique random positions
