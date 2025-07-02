@@ -25,7 +25,9 @@ lineplot(() => {
     const B = new SparseMatrix(randomMatrix(size, size, density));
     // Benchmark the multiplication
     yield () => do_not_optimize(A.mmul(B));
-  }).args('size', sizes); // 16, 32, 64, 128, 256
+  })
+    .gc('inner')
+    .args('size', sizes); // 16, 32, 64, 128, 256
 
   bench('SparseOld.mmul($size)', function* (ctx) {
     const size = ctx.get('size');
@@ -36,7 +38,9 @@ lineplot(() => {
 
     // Benchmark the multiplication
     yield () => do_not_optimize(AOld.mmul(BOld));
-  }).args('size', sizes);
+  })
+    .gc('inner')
+    .args('size', sizes);
 
   // bench('Dense.mmul($size)', function* (ctx) {
   //   const size = ctx.get('size');
@@ -49,7 +53,7 @@ lineplot(() => {
 
   //   // Benchmark the multiplication
   //   yield () => do_not_optimize(ADense.mmul(BDense));
-  // }).range('size', min, max, multiplier);
+  // }).gc('inner').range('size', min, max, multiplier);
 });
 
 await run();
