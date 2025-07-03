@@ -23,7 +23,7 @@ describe('Sparse Matrix', () => {
     });
 
     // CSR format
-    expect(m2.getNonZeros({ format: true })).toEqual({
+    expect(m2.getNonZeros({ csr: true })).toEqual({
       rows: Float64Array.from([0, 0, 4, 7, 7, 11]),
       columns: Float64Array.from([0, 3, 4, 5, 1, 4, 5, 0, 3, 4, 5]),
       values: Float64Array.from([1, 2, 1, 1, 3, 5, 5, 1, 1, 9, 9]),

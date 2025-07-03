@@ -1,4 +1,5 @@
 import HashTable from 'ml-hash-table';
+import { cooToCsr } from './utils/cooToCsr.js';
 
 /** @typedef {(row: number, column: number, value: number) => void} WithEachNonZeroCallback */
 /** @typedef {(row: number, column: number, value: number) => number | false} ForEachNonZeroCallback */
@@ -157,13 +158,14 @@ export class SparseMatrix {
   }
 
   /**
+   * Matrix multiplication, does not modify the current instance.
    * @param {SparseMatrix} other
-   * @returns {SparseMatrix}
+   * @returns {SparseMatrix} returns a new matrix instance.
+   * @throws {Error} If the number of columns of this matrix does not match the number of rows of the other matrix.
    */
   mmul(other) {
     if (this.columns !== other.rows) {
-      // eslint-disable-next-line no-console
-      console.warn(
+      throw new RangeError(
         'Number of columns of left matrix are not equal to number of rows of right matrix.',
       );
     }
@@ -177,6 +179,13 @@ export class SparseMatrix {
     return this._mmulMediumDensity(other);
   }
 
+  /**
+   * Matrix multiplication optimized for very small matrices (both cardinalities < 42).
+   *
+   * @private
+   * @param {SparseMatrix} other - The right-hand side matrix to multiply with.
+   * @returns {SparseMatrix} - The resulting matrix after multiplication.
+   */
   _mmulSmall(other) {
     const m = this.rows;
     const p = other.columns;
@@ -199,6 +208,13 @@ export class SparseMatrix {
     return result;
   }
 
+  /**
+   * Matrix multiplication optimized for low-density right-hand side matrices (other.rows > 100 and other.cardinality < 100).
+   *
+   * @private
+   * @param {SparseMatrix} other - The right-hand side matrix to multiply with.
+   * @returns {SparseMatrix} - The resulting matrix after multiplication.
+   */
   _mmulLowDensity(other) {
     const m = this.rows;
     const p = other.columns;
@@ -230,20 +246,27 @@ export class SparseMatrix {
     return result;
   }
 
+  /**
+   * Matrix multiplication for medium-density matrices using CSR format for the right-hand side.
+   *
+   * @private
+   * @param {SparseMatrix} other - The right-hand side matrix to multiply with.
+   * @returns {SparseMatrix} - The resulting matrix after multiplication.
+   */
   _mmulMediumDensity(other) {
-    const m = this.rows;
-    const p = other.columns;
-    const {
-      columns: otherCols,
-      rows: otherRows,
-      values: otherValues,
-    } = other.getNonZeros({ format: 'csr' });
     const {
       columns: thisCols,
       rows: thisRows,
       values: thisValues,
     } = this.getNonZeros();
+    const {
+      columns: otherCols,
+      rows: otherRows,
+      values: otherValues,
+    } = other.getNonZeros({ csr: true });
 
+    const m = this.rows;
+    const p = other.columns;
     const result = new SparseMatrix(m, p);
     const nbThisActive = thisCols.length;
     for (let t = 0; t < nbThisActive; t++) {
@@ -358,14 +381,23 @@ export class SparseMatrix {
   }
 
   /**
-   * Returns the non-zero elements of the matrix in coordinate (COO), CSR, or CSC format.
+   * Returns the non-zero elements of the matrix in coordinates (COO) or CSR format.
+   *
+   * **COO (Coordinate) format:**
+   * Stores the non-zero elements as three arrays: `rows`, `columns`, and `values`, where each index corresponds to a non-zero entry at (row, column) with the given value.
+   *
+   * **CSR (Compressed Sparse Row) format:**
+   * Stores the matrix using three arrays:
+   *   - `rows`: Row pointer array of length `numRows + 1`, where each entry indicates the start of a row in the `columns` and `values` arrays.
+   *   - `columns`: Column indices of non-zero elements.
+   *   - `values`: Non-zero values.
+   * This format is efficient for row slicing and matrix-vector multiplication.
    *
    * @param {Object} [options={}] - Options for output format and sorting.
-   * @param {boolean} [options.format] - If specified, returns the result in CSR or CSC format. Otherwise, returns COO format.
+   * @param {boolean} [options.csr] - If true, returns the result in CSR format. Otherwise, returns COO format.
    * @param {boolean} [options.sort] - If true, sorts the non-zero elements by their indices.
-   * @returns {Object} If no format is specified, returns an object with Float64Array `rows`, `columns`, and `values` (COO format).
-   *                   If format is true, returns { rows, columns, values } in CSR format.
-   * @throws {Error} If an unsupported format is specified.
+   * @returns {Object} If `csr` is not specified, returns an object with Float64Array `rows`, `columns`, and `values` (COO format).
+   *                   If `csr` is true, returns `{ rows, columns, values }` in CSR format.
    */
   getNonZeros(options = {}) {
     const cardinality = this.cardinality;
@@ -373,7 +405,7 @@ export class SparseMatrix {
     const columns = new Float64Array(cardinality);
     const values = new Float64Array(cardinality);
 
-    const { format, sort = format !== undefined } = options;
+    const { csr, sort } = options;
 
     let idx = 0;
     this.withEachNonZero((i, j, value) => {
@@ -381,9 +413,9 @@ export class SparseMatrix {
       columns[idx] = j;
       values[idx] = value;
       idx++;
-    }, sort);
+    }, sort || csr);
 
-    return format
+    return csr
       ? cooToCsr({ rows, columns, values }, this.rows)
       : { rows, columns, values };
   }
@@ -1518,27 +1550,3 @@ SparseMatrix.prototype.klass = 'Matrix';
 
 SparseMatrix.identity = SparseMatrix.eye;
 SparseMatrix.prototype.tensorProduct = SparseMatrix.prototype.kroneckerProduct;
-
-/**
- * Converts a matrix from Coordinate (COO) format to Compressed Sparse Row (CSR) format.
- * @param {Object} cooMatrix - The matrix in COO format with properties: values, columns, rows.
- * @param {number} nbRows - The number of rows in the matrix.
- * @returns {{rows: Float64Array, columns: Float64Array, values: Float64Array}} The matrix in CSR format.
- */
-function cooToCsr(cooMatrix, nbRows) {
-  const { values, columns, rows } = cooMatrix;
-  const csrRowPtr = new Float64Array(nbRows + 1);
-
-  // Count non-zeros per row
-  const numberOfNonZeros = rows.length;
-  for (let i = 0; i < numberOfNonZeros; i++) {
-    csrRowPtr[rows[i] + 1]++;
-  }
-
-  // Compute cumulative sum
-  for (let i = 1; i <= nbRows; i++) {
-    csrRowPtr[i] += csrRowPtr[i - 1];
-  }
-
-  return { rows: csrRowPtr, columns, values };
-}
