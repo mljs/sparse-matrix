@@ -1,14 +1,10 @@
-import { run, bench, group, do_not_optimize } from 'mitata';
+import { bench, do_not_optimize, group, run } from 'mitata';
+
 // import { Matrix } from 'ml-matrix';
+import { SparseMatrix } from '../src/index.js';
 
 import { SparseMatrix as SparseMatrixOld } from './class/SparseMatrixOld.js';
 import { randomMatrix } from './utils/randomMatrix.js';
-import { SparseMatrix } from '../src/index.js';
-
-/* eslint 
-func-names: 0 
-camelcase: 0
-*/
 
 const sizes = [8, 16, 32, 256, 512, 1024];
 const densities = [0.125, 0.0625, 0.03125, 0.0039, 0.00197, 0.001];

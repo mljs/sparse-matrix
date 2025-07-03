@@ -1,16 +1,13 @@
-import { run, bench, do_not_optimize, lineplot } from 'mitata';
+import { writeFile } from 'node:fs/promises';
+import path from 'node:path';
+
+import { bench, do_not_optimize, lineplot, run } from 'mitata';
 import { xSequentialFillFromStep } from 'ml-spectra-processing';
 
 import { SparseMatrix } from '../src/index.js';
 
 import { randomMatrix } from './utils/randomMatrix.js';
-import { writeFile } from 'node:fs/promises';
-import path from 'node:path';
 
-/* eslint 
-func-names: 0
-camelcase: 0
-*/
 // Prepare matrices once
 const cardinalities = Array.from(
   xSequentialFillFromStep({ from: 10, step: 5, size: 2 }),
