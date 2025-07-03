@@ -1,6 +1,9 @@
 import HashTable from 'ml-hash-table';
 
 import { cooToCsr } from './utils/cooToCsr.js';
+import { mmulLowDensity } from './utils/mmulLowDensity.js';
+import { mmulMediumDensity } from './utils/mmulMediumDensity.js';
+import { mmulSmall } from './utils/mmulSmall.js';
 
 /** @typedef {(row: number, column: number, value: number) => void} WithEachNonZeroCallback */
 /** @typedef {(row: number, column: number, value: number) => number | false} ForEachNonZeroCallback */
@@ -170,117 +173,16 @@ export class SparseMatrix {
         'Number of columns of left matrix are not equal to number of rows of right matrix.',
       );
     }
+
     if (this.cardinality < 42 && other.cardinality < 42) {
-      return this._mmulSmall(other);
+      return mmulSmall(this, other);
     } else if (other.rows > 100 && other.cardinality < 100) {
-      return this._mmulLowDensity(other);
-    }
-    return this._mmulMediumDensity(other);
-  }
-
-  /**
-   * Matrix multiplication optimized for very small matrices (both cardinalities < 42).
-   *
-   * @private
-   * @param {SparseMatrix} other - The right-hand side matrix to multiply with.
-   * @returns {SparseMatrix} - The resulting matrix after multiplication.
-   */
-  _mmulSmall(other) {
-    const m = this.rows;
-    const p = other.columns;
-    const {
-      columns: otherCols,
-      rows: otherRows,
-      values: otherValues,
-    } = other.getNonZeros();
-
-    const nbOtherActive = otherCols.length;
-    const result = new SparseMatrix(m, p);
-    this.withEachNonZero((i, j, v1) => {
-      for (let o = 0; o < nbOtherActive; o++) {
-        if (j === otherRows[o]) {
-          const l = otherCols[o];
-          result.set(i, l, result.get(i, l) + otherValues[o] * v1);
-        }
-      }
-    });
-    return result;
-  }
-
-  /**
-   * Matrix multiplication optimized for low-density right-hand side matrices (other.rows > 100 and other.cardinality < 100).
-   *
-   * @private
-   * @param {SparseMatrix} other - The right-hand side matrix to multiply with.
-   * @returns {SparseMatrix} - The resulting matrix after multiplication.
-   */
-  _mmulLowDensity(other) {
-    const m = this.rows;
-    const p = other.columns;
-    const {
-      columns: otherCols,
-      rows: otherRows,
-      values: otherValues,
-    } = other.getNonZeros();
-    const {
-      columns: thisCols,
-      rows: thisRows,
-      values: thisValues,
-    } = this.getNonZeros();
-
-    const result = new SparseMatrix(m, p);
-    const nbOtherActive = otherCols.length;
-    const nbThisActive = thisCols.length;
-    for (let t = 0; t < nbThisActive; t++) {
-      const i = thisRows[t];
-      const j = thisCols[t];
-      for (let o = 0; o < nbOtherActive; o++) {
-        if (j === otherRows[o]) {
-          const l = otherCols[o];
-          result.set(i, l, result.get(i, l) + otherValues[o] * thisValues[t]);
-        }
-      }
-    }
-    // console.log(result.cardinality);
-    return result;
-  }
-
-  /**
-   * Matrix multiplication for medium-density matrices using CSR format for the right-hand side.
-   *
-   * @private
-   * @param {SparseMatrix} other - The right-hand side matrix to multiply with.
-   * @returns {SparseMatrix} - The resulting matrix after multiplication.
-   */
-  _mmulMediumDensity(other) {
-    const {
-      columns: thisCols,
-      rows: thisRows,
-      values: thisValues,
-    } = this.getNonZeros();
-    const {
-      columns: otherCols,
-      rows: otherRows,
-      values: otherValues,
-    } = other.getNonZeros({ csr: true });
-
-    const m = this.rows;
-    const p = other.columns;
-    const result = new SparseMatrix(m, p);
-    const nbThisActive = thisCols.length;
-    for (let t = 0; t < nbThisActive; t++) {
-      const i = thisRows[t];
-      const j = thisCols[t];
-      const oStart = otherRows[j];
-      const oEnd = otherRows[j + 1];
-      for (let k = oStart; k < oEnd; k++) {
-        const l = otherCols[k];
-        result.set(i, l, result.get(i, l) + otherValues[k] * thisValues[t]);
-      }
+      return mmulLowDensity(this, other);
     }
 
-    return result;
+    return mmulMediumDensity(this, other);
   }
+
   /**
    * @param {SparseMatrix} other
    * @returns {SparseMatrix}
