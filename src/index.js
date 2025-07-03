@@ -1,4 +1,5 @@
 import HashTable from 'ml-hash-table';
+
 import { cooToCsr } from './utils/cooToCsr.js';
 
 /** @typedef {(row: number, column: number, value: number) => void} WithEachNonZeroCallback */
@@ -169,13 +170,11 @@ export class SparseMatrix {
         'Number of columns of left matrix are not equal to number of rows of right matrix.',
       );
     }
-
     if (this.cardinality < 42 && other.cardinality < 42) {
       return this._mmulSmall(other);
     } else if (other.rows > 100 && other.cardinality < 100) {
       return this._mmulLowDensity(other);
     }
-
     return this._mmulMediumDensity(other);
   }
 
