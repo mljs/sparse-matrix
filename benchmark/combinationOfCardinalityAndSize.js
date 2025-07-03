@@ -1,23 +1,31 @@
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { bench, do_not_optimize, lineplot, run } from 'mitata';
+import { run, bench, do_not_optimize, lineplot } from 'mitata';
+import { Matrix } from 'ml-matrix';
 import { xSequentialFillFromStep } from 'ml-spectra-processing';
 
 import { SparseMatrix } from '../src/index.js';
 
 import { randomMatrix } from './utils/randomMatrix.js';
+import { mmulMediumDensity } from '../src/utils/mmulMediumDensity.js';
+import { mmulSmall } from '../src/utils/mmulSmall.js';
+import { mmulLowDensity } from '../src/utils/mmulLowDensity.js';
 
+/* eslint 
+func-names: 0
+camelcase: 0
+*/
 // Prepare matrices once
 const cardinalities = Array.from(
-  xSequentialFillFromStep({ from: 10, step: 5, size: 2 }),
+  xSequentialFillFromStep({ from: 10, step: 50, size: 9 }),
 );
 
 // const dimensions = Array.from(
-//   xSequentialFillFromStep({ from: 700, step: 100, size: 13 }),
+//   xSequentialFillFromStep({ from: 30, step: 100, size: 20 }),
 // );
 
-const dimensions = [512];
+const dimensions = [32];
 lineplot(() => {
   bench('hibrid($cardinality,$dimension)', function* (ctx) {
     const cardinality = ctx.get('cardinality');
@@ -25,7 +33,7 @@ lineplot(() => {
     // Prepare matrices once
     let A = new SparseMatrix(randomMatrix(size, size, cardinality));
     let B = new SparseMatrix(randomMatrix(size, size, cardinality));
-
+    A.mmul(B);
     // Benchmark the multiplication
     yield () => do_not_optimize(A.mmul(B));
     do_not_optimize(A);
@@ -41,9 +49,9 @@ lineplot(() => {
     // Prepare matrices once
     let A = new SparseMatrix(randomMatrix(size, size, cardinality));
     let B = new SparseMatrix(randomMatrix(size, size, cardinality));
-
+    mmulSmall(A, B);
     // Benchmark the multiplication
-    yield () => do_not_optimize(A._mmulSmall(B));
+    yield () => do_not_optimize(mmulSmall(A, B));
     // Explicit cleanup
     do_not_optimize(A);
     do_not_optimize(B);
@@ -58,9 +66,26 @@ lineplot(() => {
     // Prepare matrices once
     let A = new SparseMatrix(randomMatrix(size, size, cardinality));
     let B = new SparseMatrix(randomMatrix(size, size, cardinality));
-
+    mmulLowDensity(A, B);
     // Benchmark the multiplication
-    yield () => do_not_optimize(A._mmulLowDensity(B));
+    yield () => do_not_optimize(mmulLowDensity(A, B));
+    // Explicit cleanup
+    do_not_optimize(A);
+    do_not_optimize(B);
+  })
+    .gc('inner')
+    .args('cardinality', cardinalities) //.range('size', 32, 1024, 2); //.args('size', sizes);
+    .args('dimension', dimensions);
+
+  bench('dense($cardinality,$dimension)', function* (ctx) {
+    const cardinality = ctx.get('cardinality');
+    const size = ctx.get('dimension');
+    // Prepare matrices once
+    let A = new Matrix(randomMatrix(size, size, cardinality));
+    let B = new Matrix(randomMatrix(size, size, cardinality));
+    A.mmul(B);
+    // Benchmark the multiplication
+    yield () => do_not_optimize(A.mmul(B));
     // Explicit cleanup
     do_not_optimize(A);
     do_not_optimize(B);
@@ -75,10 +100,10 @@ lineplot(() => {
     // Prepare matrices once
     let A = new SparseMatrix(randomMatrix(size, size, cardinality));
     let B = new SparseMatrix(randomMatrix(size, size, cardinality));
-
+    mmulMediumDensity(A, B);
     // Benchmark the multiplication
     yield () => {
-      do_not_optimize(A._mmulMediumDensity(B));
+      do_not_optimize(mmulMediumDensity(A, B));
     };
 
     // Explicit cleanup
@@ -94,19 +119,19 @@ lineplot(() => {
 const results = await run({
   // Force GC between every benchmark
   gc: true,
-  // // More samples for statistical significance
-  // min_samples: 20,
-  // max_samples: 200,
-  // // Longer warmup to stabilize CPU state
-  // warmup_samples: 10,
-  // warmup_threshold: 100, // ms
+  // More samples for statistical significance
+  min_samples: 20,
+  max_samples: 200,
+  // Longer warmup to stabilize CPU state
+  warmup_samples: 10,
+  warmup_threshold: 100, // ms
   // Longer minimum time for stable measurements
-  // min_cpu_time: 2000, // 2 seconds minimum
-  // // Batch settings to reduce variance
-  // batch_samples: 5,
-  // batch_threshold: 10, // ms
-  // // Enable colors
-  // colors: true,
+  min_cpu_time: 2000, // 2 seconds minimum
+  // Batch settings to reduce variance
+  batch_samples: 5,
+  batch_threshold: 10, // ms
+  // Enable colors
+  colors: true,
 });
 
 // Process and store results
@@ -134,6 +159,6 @@ for (const benchmark of results.benchmarks) {
 
 // Save results to JSON file
 await writeFile(
-  path.join(import.meta.dirname, `benchmark-results.json`),
+  path.join(import.meta.dirname, `benchmark-results-${dimensions[0]}.json`),
   JSON.stringify(processedResults, null, 2),
 );
