@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Benchmark Results Plot</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: sans-serif; }
+    .charts-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+    .chart-container {
+      min-width: 320px;
+      box-sizing: border-box;
+      margin-bottom: 40px;
+      /* width will be set dynamically */
+    }
+    @media (max-width: 1000px) {
+      .chart-container { min-width: 100% !important; max-width: 100% !important; }
+    }
+    #fileInput { margin: 20px 0; }
+    #error { color: red; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <h1>Benchmark Results: avg vs cardinality</h1>
+  <input type="file" id="fileInput" accept=".json" style="display:none" />
+  <div id="error"></div>
+  <div id="charts" class="charts-grid"></div>
+  <script>
+    async function loadData() {
+      try {
+        const response = await fetch('benchmark-results4.json');
+        if (!response.ok) throw new Error('Fetch failed');
+        return await response.json();
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function groupByDimensionAndMethod(data) {
+      // { dimension: { method: [entries] } }
+      const grouped = {};
+      for (const entry of data) {
+        const { name, dimension } = entry;
+        if (!grouped[dimension]) grouped[dimension] = {};
+        if (!grouped[dimension][name]) grouped[dimension][name] = [];
+        grouped[dimension][name].push(entry);
+      }
+      // Sort by cardinality for each group
+      for (const dim in grouped) {
+        for (const method in grouped[dim]) {
+          grouped[dim][method].sort((a, b) => a.cardinality - b.cardinality);
+        }
+      }
+      return grouped;
+    }
+
+    function makeColor(idx) {
+      // Generate visually distinct colors
+      const colors = [
+        '#e6194b','#3cb44b','#ffe119','#4363d8','#f58231','#911eb4','#46f0f0',
+        '#f032e6','#bcf60c','#fabebe','#008080','#e6beff','#9a6324','#fffac8',
+        '#800000','#aaffc3','#808000','#ffd8b1','#000075','#808080'
+      ];
+      return colors[idx % colors.length];
+    }
+
+    function createChart(container, dimension, methodData, methodNames) {
+      const canvas = document.createElement('canvas');
+      container.appendChild(canvas);
+      const ctx = canvas.getContext('2d');
+      const allCardinalities = Array.from(
+        new Set(
+          Object.values(methodData)
+            .flat()
+            .map(d => d.cardinality)
+        )
+      ).sort((a, b) => a - b);
+
+      const datasets = methodNames.map((method, idx) => {
+        const dataMap = {};
+        (methodData[method] || []).forEach(d => { dataMap[d.cardinality] = d.avg; });
+        return {
+          label: method,
+          data: allCardinalities.map(c => dataMap[c] !== undefined ? dataMap[c] : null),
+          borderColor: makeColor(idx),
+          backgroundColor: makeColor(idx) + '33',
+          fill: false,
+          tension: 0.1,
+          pointRadius: 3
+        };
+      });
+
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: allCardinalities,
+          datasets
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: {
+              display: true,
+              text: `dimension=${dimension}`
+            },
+            legend: { display: true }
+          },
+          scales: {
+            x: { title: { display: true, text: 'cardinality' } },
+            y: { title: { display: true, text: 'avg' }, beginAtZero: false }
+          }
+        }
+      });
+    }
+
+    function renderCharts(data) {
+      const grouped = groupByDimensionAndMethod(data);
+      const chartsDiv = document.getElementById('charts');
+      chartsDiv.innerHTML = '';
+      const methodNames = Array.from(
+        new Set(data.map(d => d.name))
+      );
+      const dimensions = Object.keys(grouped);
+      const n = dimensions.length;
+      let widthPercent = "100%";
+      if (n === 1) widthPercent = "100%";
+      else if (n === 2) widthPercent = "48%";
+      else widthPercent = "32%";
+      dimensions.forEach(dimension => {
+        const methodData = grouped[dimension];
+        const chartDiv = document.createElement('div');
+        chartDiv.className = 'chart-container';
+        chartDiv.style.maxWidth = widthPercent;
+        chartDiv.style.flexBasis = widthPercent;
+        chartsDiv.appendChild(chartDiv);
+        createChart(chartDiv, dimension, methodData, methodNames);
+      });
+    }
+
+    async function main() {
+      let data = await loadData();
+      if (data) {
+        renderCharts(data);
+      } else {
+        // Show file input for manual loading
+        document.getElementById('fileInput').style.display = '';
+        document.getElementById('error').textContent =
+          "Could not load 'benchmark-results.json'. Please select the file manually.";
+        document.getElementById('fileInput').addEventListener('change', function (e) {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = function (evt) {
+            try {
+              const json = JSON.parse(evt.target.result);
+              document.getElementById('error').textContent = '';
+              renderCharts(json);
+            } catch (err) {
+              document.getElementById('error').textContent = 'Invalid JSON file.';
+            }
+          };
+          reader.readAsText(file);
+        });
+      }
+    }
+
+    main();
+  </script>
+</body>
+</html>

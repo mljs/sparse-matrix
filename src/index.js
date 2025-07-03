@@ -20,8 +20,7 @@ export class SparseMatrix {
     if (Array.isArray(rows)) {
       const matrix = rows;
       const nbRows = matrix.length;
-      const nbColmuns = matrix[0].length;
-      options = columns || { initialCapacity: nbRows * nbColmuns };
+      options = columns || {};
       columns = matrix[0].length;
       this._init(nbRows, columns, new HashTable(options), options.threshold);
       for (let i = 0; i < nbRows; i++) {
@@ -169,11 +168,71 @@ export class SparseMatrix {
       );
     }
 
+    if (this.cardinality < 42 && other.cardinality < 42) {
+      return this._mmulSmall(other);
+    } else if (other.rows > 100 && other.cardinality < 100) {
+      return this._mmulLowDensity(other);
+    }
+
+    return this._mmulMediumDensity(other);
+  }
+
+  _mmulSmall(other) {
     const m = this.rows;
     const p = other.columns;
+    const {
+      columns: otherCols,
+      rows: otherRows,
+      values: otherValues,
+    } = other.getNonZeros();
 
-    const result = matrixCreateEmpty(m, p);
+    const nbOtherActive = otherCols.length;
+    const result = new SparseMatrix(m, p);
+    this.withEachNonZero((i, j, v1) => {
+      for (let o = 0; o < nbOtherActive; o++) {
+        if (j === otherRows[o]) {
+          const l = otherCols[o];
+          result.set(i, l, result.get(i, l) + otherValues[o] * v1);
+        }
+      }
+    });
+    return result;
+  }
 
+  _mmulLowDensity(other) {
+    const m = this.rows;
+    const p = other.columns;
+    const {
+      columns: otherCols,
+      rows: otherRows,
+      values: otherValues,
+    } = other.getNonZeros();
+    const {
+      columns: thisCols,
+      rows: thisRows,
+      values: thisValues,
+    } = this.getNonZeros();
+
+    const result = new SparseMatrix(m, p);
+    const nbOtherActive = otherCols.length;
+    const nbThisActive = thisCols.length;
+    for (let t = 0; t < nbThisActive; t++) {
+      const i = thisRows[t];
+      const j = thisCols[t];
+      for (let o = 0; o < nbOtherActive; o++) {
+        if (j === otherRows[o]) {
+          const l = otherCols[o];
+          result.set(i, l, result.get(i, l) + otherValues[o] * thisValues[t]);
+        }
+      }
+    }
+    // console.log(result.cardinality);
+    return result;
+  }
+
+  _mmulMediumDensity(other) {
+    const m = this.rows;
+    const p = other.columns;
     const {
       columns: otherCols,
       rows: otherRows,
@@ -183,26 +242,23 @@ export class SparseMatrix {
       columns: thisCols,
       rows: thisRows,
       values: thisValues,
-    } = this.getNonZeros({ format: 'csc' });
+    } = this.getNonZeros();
 
-    const thisNbCols = this.columns;
-    for (let t = 0; t < thisNbCols; t++) {
-      const tStart = thisCols[t];
-      const tEnd = thisCols[t + 1];
-      const oStart = otherRows[t];
-      const oEnd = otherRows[t + 1];
-      for (let f = tStart; f < tEnd; f++) {
-        for (let k = oStart; k < oEnd; k++) {
-          const i = thisRows[f];
-          const l = otherCols[k];
-          result[i][l] += thisValues[f] * otherValues[k];
-        }
+    const result = new SparseMatrix(m, p);
+    const nbThisActive = thisCols.length;
+    for (let t = 0; t < nbThisActive; t++) {
+      const i = thisRows[t];
+      const j = thisCols[t];
+      const oStart = otherRows[j];
+      const oEnd = otherRows[j + 1];
+      for (let k = oStart; k < oEnd; k++) {
+        const l = otherCols[k];
+        result.set(i, l, result.get(i, l) + otherValues[k] * thisValues[t]);
       }
     }
 
-    return new SparseMatrix(result);
+    return result;
   }
-
   /**
    * @param {SparseMatrix} other
    * @returns {SparseMatrix}
@@ -214,7 +270,7 @@ export class SparseMatrix {
     const q = other.columns;
 
     const result = new SparseMatrix(m * p, n * q, {
-      initialCapacity: this.cardinality * other.cardinality + 20,
+      initialCapacity: this.cardinality * other.cardinality + 10,
     });
 
     const {
@@ -301,13 +357,23 @@ export class SparseMatrix {
     return this;
   }
 
+  /**
+   * Returns the non-zero elements of the matrix in coordinate (COO), CSR, or CSC format.
+   *
+   * @param {Object} [options={}] - Options for output format and sorting.
+   * @param {boolean} [options.format] - If specified, returns the result in CSR or CSC format. Otherwise, returns COO format.
+   * @param {boolean} [options.sort] - If true, sorts the non-zero elements by their indices.
+   * @returns {Object} If no format is specified, returns an object with Float64Array `rows`, `columns`, and `values` (COO format).
+   *                   If format is true, returns { rows, columns, values } in CSR format.
+   * @throws {Error} If an unsupported format is specified.
+   */
   getNonZeros(options = {}) {
     const cardinality = this.cardinality;
     const rows = new Float64Array(cardinality);
     const columns = new Float64Array(cardinality);
     const values = new Float64Array(cardinality);
 
-    const { format, sort = false } = options;
+    const { format, sort = format !== undefined } = options;
 
     let idx = 0;
     this.withEachNonZero((i, j, value) => {
@@ -315,18 +381,11 @@ export class SparseMatrix {
       columns[idx] = j;
       values[idx] = value;
       idx++;
-    }, sort || format);
+    }, sort);
 
-    if (!format) return { rows, columns, values };
-
-    if (!['csr', 'csc'].includes(format.toLowerCase())) {
-      throw new Error(`format ${format} is not supported`);
-    }
-
-    const csrMatrix = cooToCsr({ rows, columns, values }, this.rows);
-    return format.toLowerCase() === 'csc'
-      ? csrToCsc(csrMatrix, this.columns)
-      : csrMatrix;
+    return format
+      ? cooToCsr({ rows, columns, values }, this.rows)
+      : { rows, columns, values };
   }
 
   /**
@@ -1460,57 +1519,26 @@ SparseMatrix.prototype.klass = 'Matrix';
 SparseMatrix.identity = SparseMatrix.eye;
 SparseMatrix.prototype.tensorProduct = SparseMatrix.prototype.kroneckerProduct;
 
-function csrToCsc(csrMatrix, numCols) {
-  const {
-    values: csrValues,
-    columns: csrColIndices,
-    rows: csrRowPtr,
-  } = csrMatrix;
-
-  const cscValues = new Float64Array(csrValues.length);
-  const cscRowIndices = new Float64Array(csrValues.length);
-  const cscColPtr = new Float64Array(numCols + 1);
-
-  for (let i = 0; i < csrColIndices.length; i++) {
-    cscColPtr[csrColIndices[i] + 1]++;
-  }
-
-  for (let i = 1; i <= numCols; i++) {
-    cscColPtr[i] += cscColPtr[i - 1];
-  }
-
-  const next = cscColPtr.slice();
-
-  for (let row = 0; row < csrRowPtr.length - 1; row++) {
-    for (let j = csrRowPtr[row], i = 0; j < csrRowPtr[row + 1]; j++, i++) {
-      const col = csrColIndices[j];
-      const pos = next[col];
-      cscValues[pos] = csrValues[j];
-      cscRowIndices[pos] = row;
-      next[col]++;
-    }
-  }
-
-  return { rows: cscRowIndices, columns: cscColPtr, values: cscValues };
-}
-
-function cooToCsr(cooMatrix, nbRows = 9) {
+/**
+ * Converts a matrix from Coordinate (COO) format to Compressed Sparse Row (CSR) format.
+ * @param {Object} cooMatrix - The matrix in COO format with properties: values, columns, rows.
+ * @param {number} nbRows - The number of rows in the matrix.
+ * @returns {{rows: Float64Array, columns: Float64Array, values: Float64Array}} The matrix in CSR format.
+ */
+function cooToCsr(cooMatrix, nbRows) {
   const { values, columns, rows } = cooMatrix;
   const csrRowPtr = new Float64Array(nbRows + 1);
-  const length = values.length;
-  let currentRow = rows[0];
-  for (let index = 0; index < length; ) {
-    while (currentRow === rows[index] && index < length) ++index;
-    csrRowPtr[currentRow + 1] = index;
-    currentRow += 1;
-  }
-  return { rows: csrRowPtr, columns, values };
-}
 
-function matrixCreateEmpty(nbRows, nbColumns) {
-  const newMatrix = [];
-  for (let row = 0; row < nbRows; row++) {
-    newMatrix.push(new Float64Array(nbColumns));
+  // Count non-zeros per row
+  const numberOfNonZeros = rows.length;
+  for (let i = 0; i < numberOfNonZeros; i++) {
+    csrRowPtr[rows[i] + 1]++;
   }
-  return newMatrix;
+
+  // Compute cumulative sum
+  for (let i = 1; i <= nbRows; i++) {
+    csrRowPtr[i] += csrRowPtr[i - 1];
+  }
+
+  return { rows: csrRowPtr, columns, values };
 }
