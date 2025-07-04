@@ -6,11 +6,11 @@ import { Matrix } from 'ml-matrix';
 import { xSequentialFillFromStep } from 'ml-spectra-processing';
 
 import { SparseMatrix } from '../src/index.js';
-
-import { randomMatrix } from './utils/randomMatrix.js';
+import { mmulLowDensity } from '../src/utils/mmulLowDensity.js';
 import { mmulMediumDensity } from '../src/utils/mmulMediumDensity.js';
 import { mmulSmall } from '../src/utils/mmulSmall.js';
-import { mmulLowDensity } from '../src/utils/mmulLowDensity.js';
+
+import { randomMatrix } from './utils/randomMatrix.js';
 
 /* eslint 
 func-names: 0
