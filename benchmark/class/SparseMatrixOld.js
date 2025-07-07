@@ -1,11 +1,5 @@
 import HashTable from 'ml-hash-table';
 
-import { cooToCsr } from './utils/cooToCsr.js';
-import { mmulLowDensity } from './utils/mmulLowDensity.js';
-import { mmulMediumDensity } from './utils/mmulMediumDensity.js';
-import { mmulSmall } from './utils/mmulSmall.js';
-
-/** @typedef {(row: number, column: number, value: number) => void} WithEachNonZeroCallback */
 /** @typedef {(row: number, column: number, value: number) => number | false} ForEachNonZeroCallback */
 
 export class SparseMatrix {
@@ -24,11 +18,11 @@ export class SparseMatrix {
 
     if (Array.isArray(rows)) {
       const matrix = rows;
-      const nbRows = matrix.length;
+      rows = matrix.length;
       options = columns || {};
       columns = matrix[0].length;
-      this._init(nbRows, columns, new HashTable(options), options.threshold);
-      for (let i = 0; i < nbRows; i++) {
+      this._init(rows, columns, new HashTable(options), options.threshold);
+      for (let i = 0; i < rows; i++) {
         for (let j = 0; j < columns; j++) {
           let value = matrix[i][j];
           if (this.threshold && Math.abs(value) < this.threshold) value = 0;
@@ -37,7 +31,6 @@ export class SparseMatrix {
           }
         }
       }
-      this.elements.maybeShrinkCapacity();
     } else {
       this._init(rows, columns, new HashTable(options), options.threshold);
     }
@@ -157,30 +150,34 @@ export class SparseMatrix {
     } else {
       this.elements.set(row * this.columns + column, value);
     }
-
     return this;
   }
 
   /**
-   * Matrix multiplication, does not modify the current instance.
    * @param {SparseMatrix} other
-   * @returns {SparseMatrix} returns a new matrix instance.
-   * @throws {Error} If the number of columns of this matrix does not match the number of rows of the other matrix.
+   * @returns {SparseMatrix}
    */
   mmul(other) {
     if (this.columns !== other.rows) {
-      throw new RangeError(
+      console.warn(
         'Number of columns of left matrix are not equal to number of rows of right matrix.',
       );
     }
 
-    if (this.cardinality < 42 && other.cardinality < 42) {
-      return mmulSmall(this, other);
-    } else if (other.rows > 100 && other.cardinality < 100) {
-      return mmulLowDensity(this, other);
-    }
+    const m = this.rows;
+    const p = other.columns;
 
-    return mmulMediumDensity(this, other);
+    const result = new SparseMatrix(m, p);
+    this.forEachNonZero((i, j, v1) => {
+      other.forEachNonZero((k, l, v2) => {
+        if (j === k) {
+          result.set(i, l, result.get(i, l) + v1 * v2);
+        }
+        return v2;
+      });
+      return v1;
+    });
+    return result;
   }
 
   /**
@@ -194,61 +191,16 @@ export class SparseMatrix {
     const q = other.columns;
 
     const result = new SparseMatrix(m * p, n * q, {
-      initialCapacity: this.cardinality * other.cardinality + 10,
+      initialCapacity: this.cardinality * other.cardinality,
     });
-
-    const {
-      columns: otherCols,
-      rows: otherRows,
-      values: otherValues,
-    } = other.getNonZeros();
-    const {
-      columns: thisCols,
-      rows: thisRows,
-      values: thisValues,
-    } = this.getNonZeros();
-
-    const nbThisActive = thisCols.length;
-    const nbOtherActive = otherCols.length;
-    for (let t = 0; t < nbThisActive; t++) {
-      const pi = p * thisRows[t];
-      const qj = q * thisCols[t];
-      for (let o = 0; o < nbOtherActive; o++) {
-        result.set(
-          pi + otherRows[o],
-          qj + otherCols[o],
-          otherValues[o] * thisValues[t],
-        );
-      }
-    }
-
+    this.forEachNonZero((i, j, v1) => {
+      other.forEachNonZero((k, l, v2) => {
+        result.set(p * i + k, q * j + l, v1 * v2);
+        return v2;
+      });
+      return v1;
+    });
     return result;
-  }
-
-  /**
-   * Calls `callback` for each value in the matrix that is not zero.
-   * Unlike `forEachNonZero`, the callback's return value has no effect.
-   * @param {WithEachNonZeroCallback} callback
-   * @param {boolean} [sort]
-   * @returns {void}
-   */
-  withEachNonZero(callback, sort = false) {
-    const { state, table, values } = this.elements;
-    const nbStates = state.length;
-    const activeIndex = new Float64Array(this.cardinality);
-    for (let i = 0, j = 0; i < nbStates; i++) {
-      if (state[i] === 1) activeIndex[j++] = i;
-    }
-
-    if (sort) {
-      activeIndex.sort((a, b) => table[a] - table[b]);
-    }
-
-    const columns = this.columns;
-    for (const i of activeIndex) {
-      const key = table[i];
-      callback((key / columns) | 0, key % columns, values[i]);
-    }
   }
 
   /**
@@ -281,44 +233,23 @@ export class SparseMatrix {
     return this;
   }
 
-  /**
-   * Returns the non-zero elements of the matrix in coordinates (COO) or CSR format.
-   *
-   * **COO (Coordinate) format:**
-   * Stores the non-zero elements as three arrays: `rows`, `columns`, and `values`, where each index corresponds to a non-zero entry at (row, column) with the given value.
-   *
-   * **CSR (Compressed Sparse Row) format:**
-   * Stores the matrix using three arrays:
-   *   - `rows`: Row pointer array of length `numRows + 1`, where each entry indicates the start of a row in the `columns` and `values` arrays.
-   *   - `columns`: Column indices of non-zero elements.
-   *   - `values`: Non-zero values.
-   * This format is efficient for row slicing and matrix-vector multiplication.
-   *
-   * @param {Object} [options={}] - Options for output format and sorting.
-   * @param {boolean} [options.csr] - If true, returns the result in CSR format. Otherwise, returns COO format.
-   * @param {boolean} [options.sort] - If true, sorts the non-zero elements by their indices.
-   * @returns {Object} If `csr` is not specified, returns an object with Float64Array `rows`, `columns`, and `values` (COO format).
-   *                   If `csr` is true, returns `{ rows, columns, values }` in CSR format.
-   */
-  getNonZeros(options = {}) {
+  getNonZeros() {
     const cardinality = this.cardinality;
-    const rows = new Float64Array(cardinality);
-    const columns = new Float64Array(cardinality);
-    const values = new Float64Array(cardinality);
-
-    const { csr, sort } = options;
-
+    /** @type {number[]} */
+    const rows = new Array(cardinality);
+    /** @type {number[]} */
+    const columns = new Array(cardinality);
+    /** @type {number[]} */
+    const values = new Array(cardinality);
     let idx = 0;
-    this.withEachNonZero((i, j, value) => {
+    this.forEachNonZero((i, j, value) => {
       rows[idx] = i;
       columns[idx] = j;
       values[idx] = value;
       idx++;
-    }, sort || csr);
-
-    return csr
-      ? cooToCsr({ rows, columns, values }, this.rows)
-      : { rows, columns, values };
+      return value;
+    });
+    return { rows, columns, values };
   }
 
   /**
@@ -340,8 +271,9 @@ export class SparseMatrix {
     let trans = new SparseMatrix(this.columns, this.rows, {
       initialCapacity: this.cardinality,
     });
-    this.withEachNonZero((i, j, value) => {
+    this.forEachNonZero((i, j, value) => {
       trans.set(j, i, value);
+      return value;
     });
     return trans;
   }
