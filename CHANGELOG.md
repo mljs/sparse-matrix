@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.0](https://github.com/mljs/sparse-matrix/compare/v3.0.1...v3.1.0) (2025-07-07)
+
+
+### Features
+
+* add `withEachNonZero` method and improve performance of mmul and kroneckerProduct ([#14](https://github.com/mljs/sparse-matrix/issues/14)) ([8e8318c](https://github.com/mljs/sparse-matrix/commit/8e8318c57b746461416fba89f4a934f929afb60f))
+
 ## [3.0.1](https://github.com/mljs/sparse-matrix/compare/v3.0.0...v3.0.1) (2025-06-20)
 
 
