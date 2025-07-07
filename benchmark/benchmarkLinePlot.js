@@ -3,7 +3,7 @@ import { xSequentialFillFromStep } from 'ml-spectra-processing';
 
 import { SparseMatrix } from '../src/index.js';
 
-import { SparseMatrix as SparseMatrixOld } from './class/SparseMatrixOld.js';
+import { SparseMatrix as SparseMatrixOld } from './old/index.js';
 import { randomMatrix } from './utils/randomMatrix.js';
 
 const density = 0.02; // Fixed density for this comparison;
