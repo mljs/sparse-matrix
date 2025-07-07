@@ -64,11 +64,11 @@ export class SparseMatrix {
   }
 
   /**
-   * @returns {Float64Array[]}
+   * @returns {number[][]}
    */
   to2DArray() {
     const copy = Array.from({ length: this.rows }, () =>
-      Float64Array.from({ length: this.columns }),
+      Array.from({ length: this.columns }, () => 0),
     );
     this.withEachNonZero((i, j, v) => {
       copy[i][j] = v;
