@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.1](https://github.com/mljs/sparse-matrix/compare/v3.1.0...v3.1.1) (2025-07-08)
+
+
+### Performance Improvements
+
+* optimize to2DArray method by only getting non-zeros ([#19](https://github.com/mljs/sparse-matrix/issues/19)) ([e80f453](https://github.com/mljs/sparse-matrix/commit/e80f4536e30428c8b4d187a4fc3af9c7f7fe825a))
+
 ## [3.1.0](https://github.com/mljs/sparse-matrix/compare/v3.0.1...v3.1.0) (2025-07-07)
 
 
