@@ -67,13 +67,13 @@ export class SparseMatrix {
    * @returns {number[][]}
    */
   to2DArray() {
-    const copy = new Array(this.rows);
-    for (let i = 0; i < this.rows; i++) {
-      copy[i] = new Array(this.columns);
-      for (let j = 0; j < this.columns; j++) {
-        copy[i][j] = this.get(i, j);
-      }
-    }
+    const copy = Array.from({ length: this.rows }, () =>
+      new Array(this.columns).fill(0),
+    );
+    this.withEachNonZero((i, j, v) => {
+      copy[i][j] = v;
+    });
+
     return copy;
   }
 
